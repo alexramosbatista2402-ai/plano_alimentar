@@ -1,0 +1,61 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#16213d"/>
+      <stop offset="100%" stop-color="#0b1224"/>
+    </linearGradient>
+    <linearGradient id="plateShine" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#eef1f6"/>
+    </linearGradient>
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ff8a3d"/>
+      <stop offset="100%" stop-color="#ff6a1a"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="30%" r="75%">
+      <stop offset="0%" stop-color="#22304f"/>
+      <stop offset="100%" stop-color="#16213d" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Fundo com cantos arredondados (formato padrão de ícone de app) -->
+  <rect x="0" y="0" width="1024" height="1024" rx="224" fill="url(#bg)"/>
+  <rect x="0" y="0" width="1024" height="1024" rx="224" fill="url(#glow)"/>
+
+  <!-- Prato central -->
+  <circle cx="512" cy="512" r="270" fill="url(#plateShine)"/>
+  <circle cx="512" cy="512" r="270" fill="none" stroke="#dfe4ee" stroke-width="6"/>
+  <circle cx="512" cy="512" r="196" fill="none" stroke="#dfe4ee" stroke-width="5"/>
+
+  <!-- Folha estilizada (verde, saudável) sobre o prato -->
+  <g transform="translate(512,512)">
+    <path d="M0,-118 C70,-100 118,-40 118,20 C118,86 66,140 0,140 C0,80 8,-10 0,-118 Z"
+          fill="#2e7d32"/>
+    <path d="M0,-118 C-70,-100 -118,-40 -118,20 C-118,86 -66,140 0,140"
+          fill="#3f9946"/>
+    <path d="M0,-90 L0,130" stroke="#1b5e20" stroke-width="10" stroke-linecap="round"/>
+  </g>
+
+  <!-- Garfo -->
+  <g transform="translate(268,512)">
+    <rect x="-14" y="-150" width="28" height="330" rx="14" fill="#10192f"/>
+    <path d="M-34,-150 L-34,-70 C-34,-50 -14,-50 -14,-70 L-14,-150
+             M14,-150 L14,-70 C14,-50 34,-50 34,-70 L34,-150
+             M-4,-150 L-4,-70 M4,-150 L4,-70" stroke="#10192f" stroke-width="16" stroke-linecap="round" fill="none"/>
+    <path d="M-34,-150 L34,-150" stroke="#10192f" stroke-width="16" stroke-linecap="round"/>
+  </g>
+
+  <!-- Colher -->
+  <g transform="translate(756,512)">
+    <rect x="-14" y="10" width="28" height="170" rx="14" fill="#10192f"/>
+    <ellipse cx="0" cy="-70" rx="46" ry="66" fill="#10192f"/>
+  </g>
+
+  <!-- Emblema de gota (hidratação) -->
+  <g transform="translate(742,742)">
+    <circle cx="0" cy="0" r="92" fill="url(#accentGrad)"/>
+    <circle cx="0" cy="0" r="92" fill="none" stroke="#16213d" stroke-width="10"/>
+    <path d="M0,-46 C24,-14 42,14 42,38 C42,66 22,84 0,84 C-22,84 -42,66 -42,38 C-42,14 -24,-14 0,-46 Z"
+          fill="#ffffff"/>
+  </g>
+</svg>
