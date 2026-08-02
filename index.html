@@ -1,0 +1,3292 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="light only">
+<title>App Refeições</title>
+<style>
+  :root{
+    --bg-app: #eef1f6;
+    --navy: #10192f;
+    --navy-2: #16213d;
+    --accent: #ff6a1a;
+    --muted: #8a92ab;
+    --muted-2: #6b7593;
+    --app-green: #2e7d32;
+    --app-green-dark: #1b5e20;
+  }
+  *{box-sizing:border-box;}
+  html{
+    color-scheme: light only;
+  }
+  body{
+    color-scheme: light only;
+    margin:0;
+    min-height:100vh;
+    background:
+      radial-gradient(circle at 20% 10%, #ffffff 0%, transparent 40%),
+      var(--bg-app);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:flex-end;
+  }
+
+  /* Botão padrão de ação "+" usado nos cabeçalhos dos painéis
+     (Cardápio, Receitas, Lista de compras) — mesma cor, formato e sombra */
+  .app-btn-add{
+    background-color: var(--app-green);
+    color: #fff;
+    border: none;
+    padding: 10px 16px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+    box-shadow: 0 2px 8px rgba(46, 125, 50, 0.3);
+    transition: background 0.2s, transform 0.1s ease;
+  }
+  .app-btn-add:hover{ background-color: var(--app-green-dark); }
+  .app-btn-add:active{ transform: scale(0.97); }
+
+  .app-frame{
+    position:relative;
+    width:100%;
+    max-width:430px;
+    height:100vh;
+    max-height:900px;
+    background: var(--bg-app);
+    overflow:hidden;
+    display:flex;
+    flex-direction:column;
+  }
+
+  .content{
+    flex:1;
+    overflow-y:auto;
+    padding:32px 24px 140px;
+    color:#1c2438;
+  }
+  .content h1{ font-size:22px; margin-bottom:4px;}
+  .content p{ color:var(--muted-2); font-size:14px; }
+
+  .panel{ display:none; }
+  .panel.active{ display:block; }
+
+  /* ---------- Bottom nav ---------- */
+  .bottom-nav{
+    position:absolute;
+    left:16px;
+    right:16px;
+    bottom:24px;
+    background: linear-gradient(180deg, var(--navy-2), var(--navy));
+    border-radius:28px;
+    padding:18px 8px 16px;
+    display:flex;
+    justify-content:space-between;
+    box-shadow: 0 20px 40px -12px rgba(16,25,47,0.55);
+    z-index:10;
+  }
+
+  .nav-item{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:10px;
+    background:none;
+    border:none;
+    cursor:pointer;
+    padding:4px 2px;
+    font-family:inherit;
+  }
+
+  .nav-item svg{
+    width:26px;
+    height:26px;
+    stroke: var(--muted);
+    fill:none;
+    stroke-width:1.8;
+    stroke-linecap:round;
+    stroke-linejoin:round;
+    transition: stroke .15s ease;
+  }
+
+  .nav-item span{
+    font-size:12.5px;
+    color: var(--muted);
+    font-weight:500;
+    transition: color .15s ease;
+    white-space:nowrap;
+  }
+
+  .nav-item.active svg{ stroke: var(--accent); }
+  .nav-item.active span{ color: var(--accent); font-weight:600; }
+
+  .nav-item:not(.active):hover svg,
+  .nav-item:not(.active):hover span{
+    stroke:#c3c9dc;
+    color:#c3c9dc;
+  }
+
+  /* ============================================================
+     Estilos da Lista de Compras (escopados dentro de #panel-lista)
+     ============================================================ */
+  #panel-lista .container {
+      width: 100%;
+      max-width: 480px;
+      background-color: transparent;
+      padding: 0;
+  }
+
+  #panel-lista .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 20px;
+  }
+
+  #panel-lista .header h1 {
+      font-size: 24px;
+      font-weight: 700;
+      color: #111;
+      margin:0;
+  }
+
+  #panel-lista .header p {
+      font-size: 14px;
+      color: #666;
+      margin-top: 2px;
+  }
+
+  #panel-lista .item-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 24px;
+      min-height: 100px;
+  }
+
+  #panel-lista .empty-state {
+      text-align: center;
+      color: #888;
+      font-size: 14px;
+      margin-top: 40px;
+  }
+
+  #panel-lista .item-card {
+      display: flex;
+      align-items: center;
+      background-color: #ffffff;
+      padding: 14px 16px;
+      border-radius: 14px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  }
+
+  #panel-lista .checkbox-container {
+      display: block;
+      position: relative;
+      cursor: pointer;
+      font-size: 22px;
+      user-select: none;
+      margin-right: 14px;
+  }
+
+  #panel-lista .checkbox-container input {
+      position: absolute;
+      opacity: 0;
+      cursor: pointer;
+      height: 0;
+      width: 0;
+  }
+
+  #panel-lista .checkmark {
+      position: absolute;
+      top: -10px;
+      left: -10px;
+      height: 22px;
+      width: 22px;
+      background-color: #fff;
+      border: 2px solid #b0bec5;
+      border-radius: 6px;
+      transition: all 0.2s;
+  }
+
+  #panel-lista .checkbox-container input:checked ~ .checkmark {
+      background-color: #2e7d32;
+      border-color: #2e7d32;
+  }
+
+  #panel-lista .checkmark:after {
+      content: "";
+      position: absolute;
+      display: none;
+  }
+
+  #panel-lista .checkbox-container input:checked ~ .checkmark:after {
+      display: block;
+  }
+
+  #panel-lista .checkbox-container .checkmark:after {
+      left: 7px;
+      top: 3px;
+      width: 5px;
+      height: 10px;
+      border: solid white;
+      border-width: 0 2px 2px 0;
+      transform: rotate(45deg);
+  }
+
+  #panel-lista .item-info {
+      flex: 1;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+  }
+
+  #panel-lista .item-details {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+  }
+
+  #panel-lista .item-name {
+      font-size: 15px;
+      font-weight: 600;
+      color: #222;
+  }
+
+  #panel-lista .item-card.checked .item-name {
+      color: #888;
+      text-decoration: line-through;
+  }
+
+  #panel-lista .item-qty {
+      font-size: 14px;
+      color: #777;
+  }
+
+  #panel-lista .item-price {
+      font-size: 15px;
+      font-weight: 600;
+      color: #2e7d32;
+      margin-left: auto;
+      margin-right: 14px;
+      cursor: pointer;
+      background: #e8f5e9;
+      padding: 4px 8px;
+      border-radius: 6px;
+  }
+
+  #panel-lista .item-price:hover {
+      background: #c8e6c9;
+  }
+
+  #panel-lista .item-menu {
+      background: none;
+      border: none;
+      font-size: 18px;
+      cursor: pointer;
+      padding: 4px;
+  }
+
+  #panel-lista .summary-box {
+      display: flex;
+      background-color: #e8f5e9;
+      border-radius: 16px;
+      padding: 16px;
+      text-align: center;
+      border: 1px solid #d0e8d2;
+  }
+
+  #panel-lista .summary-col {
+      flex: 1;
+  }
+
+  #panel-lista .summary-col:first-child {
+      border-right: 1px solid #c8e6c9;
+  }
+
+  #panel-lista .summary-label {
+      font-size: 13px;
+      color: #2e7d32;
+      font-weight: 600;
+      margin-bottom: 4px;
+  }
+
+  #panel-lista .summary-value {
+      font-size: 20px;
+      font-weight: 700;
+      color: #1b5e20;
+  }
+
+  /* Modais da lista de compras */
+  #panel-lista .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+  }
+
+  #panel-lista .modal-card {
+      background: white;
+      padding: 24px;
+      border-radius: 16px;
+      width: 90%;
+      max-width: 360px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  }
+
+  #panel-lista .modal-card h2 {
+      font-size: 18px;
+      margin-bottom: 16px;
+      color: #111;
+  }
+
+  #panel-lista .form-group {
+      margin-bottom: 14px;
+  }
+
+  #panel-lista .form-group label {
+      display: block;
+      font-size: 13px;
+      color: #666;
+      margin-bottom: 6px;
+      font-weight: 600;
+  }
+
+  #panel-lista .form-group input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 15px;
+      outline: none;
+  }
+
+  #panel-lista .form-group input:focus {
+      border-color: #2e7d32;
+  }
+
+  #panel-lista .modal-buttons {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 20px;
+  }
+
+  #panel-lista .modal-buttons button {
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+  }
+
+  #panel-lista .btn-cancel {
+      background: #e0e0e0;
+      color: #333;
+  }
+
+  #panel-lista .btn-save {
+      background: #2e7d32;
+      color: white;
+  }
+
+  /* ============================================================
+     Estilos do painel de Hidratação (escopados dentro de #panel-hidratacao)
+     Sem dependência de CDN externo (Tailwind/Lucide) — CSS próprio.
+     ============================================================ */
+  #panel-hidratacao{
+    --h-blue-50:#eff6ff;
+    --h-blue-100:#dbeafe;
+    --h-blue-200:#bfdbfe;
+    --h-blue-500:#3b82f6;
+    --h-blue-600:#2563eb;
+    --h-blue-700:#1d4ed8;
+    --h-slate-50:#f8fafc;
+    --h-slate-100:#f1f5f9;
+    --h-slate-200:#e2e8f0;
+    --h-slate-400:#94a3b8;
+    --h-slate-500:#64748b;
+    --h-slate-600:#475569;
+    --h-slate-800:#1e293b;
+    --h-slate-900:#0f172a;
+    --h-green-100:#dcfce7;
+    --h-green-200:#bbf7d0;
+    --h-green-700:#15803d;
+  }
+
+  .hydro-card{
+    width:100%;
+    max-width:480px;
+    margin:0 auto;
+    background:#fff;
+    border-radius:24px;
+    box-shadow:0 10px 25px -8px rgba(15,23,42,0.12);
+    border:1px solid var(--h-slate-100);
+    padding:20px;
+    display:flex;
+    flex-direction:column;
+    gap:20px;
+  }
+
+  .hydro-header{ display:flex; align-items:center; justify-content:space-between; }
+  .hydro-header-left{ display:flex; align-items:center; gap:12px; }
+
+  .hydro-icon-circle{
+    width:40px; height:40px; border-radius:999px;
+    background:var(--h-blue-500);
+    color:#fff;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 4px 10px rgba(59,130,246,0.25);
+    flex-shrink:0;
+  }
+  .hydro-icon-circle svg{ width:22px; height:22px; }
+
+  .hydro-title{ font-size:20px; font-weight:700; color:var(--h-blue-600); line-height:1.2; margin:0; }
+  .hydro-date{ font-size:12px; color:var(--h-slate-500); text-transform:capitalize; margin:2px 0 0; }
+
+  .hydro-progress-card{
+    background:linear-gradient(180deg, var(--h-blue-50), #ffffff);
+    border:1px solid rgba(191,219,254,0.6);
+    border-radius:24px;
+    padding:20px;
+  }
+
+  .hydro-grid{ display:grid; grid-template-columns:1fr 1fr; gap:16px; align-items:center; }
+
+  .hydro-goal-col{ display:flex; flex-direction:column; gap:16px; }
+  .hydro-goal-label{ font-size:12px; color:var(--h-slate-500); font-weight:500; }
+
+  .hydro-goal-view{ display:flex; align-items:baseline; gap:4px; margin-top:2px; }
+  .hydro-goal-view.hidden{ display:none; }
+  .hydro-goal-amount{ font-size:24px; font-weight:800; color:var(--h-blue-600); }
+  .hydro-goal-unit{ font-size:17px; font-weight:700; color:var(--h-blue-600); }
+
+  .hydro-goal-edit{ display:none; align-items:center; gap:4px; margin-top:2px; }
+  .hydro-goal-edit.active{ display:flex; }
+  .hydro-goal-input{
+    width:70px; font-size:17px; font-weight:700; color:var(--h-blue-700);
+    background:#fff; padding:4px 6px; border:1px solid var(--h-blue-200); border-radius:8px; outline:none;
+  }
+  .hydro-goal-edit-unit{ font-size:13px; font-weight:700; color:var(--h-blue-600); }
+
+  .hydro-icon-btn{
+    border:none; cursor:pointer; display:flex; align-items:center; justify-content:center;
+    background:none; padding:6px; border-radius:8px; color:rgba(59,130,246,0.5); transition:color .15s;
+  }
+  .hydro-icon-btn:hover{ color:var(--h-blue-600); }
+  .hydro-icon-btn.hidden{ display:none; }
+  .hydro-icon-btn svg{ width:16px; height:16px; }
+
+  .hydro-save-btn{
+    padding:6px; border-radius:8px; background:var(--h-green-100); color:var(--h-green-700);
+    border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:background .15s;
+  }
+  .hydro-save-btn:hover{ background:var(--h-green-200); }
+  .hydro-save-btn svg{ width:16px; height:16px; }
+
+  .hydro-goal-subtitle{ font-size:12px; color:var(--h-slate-400); }
+
+  .hydro-remaining-box{
+    background:rgba(255,255,255,0.8);
+    border:1px solid var(--h-blue-100);
+    border-radius:16px;
+    padding:12px;
+    box-shadow:0 1px 2px rgba(0,0,0,0.03);
+  }
+  .hydro-remaining-label{ font-size:12px; color:var(--h-slate-500); display:block; }
+  .hydro-remaining-value{ font-size:18px; font-weight:700; color:var(--h-blue-600); display:block; line-height:1.2; }
+  .hydro-remaining-caption{ font-size:11px; color:var(--h-slate-500); display:block; margin-top:2px; line-height:1.3; }
+
+  .hydro-circle-col{ display:flex; align-items:center; justify-content:center; }
+  .hydro-circle-wrap{
+    width:128px; height:128px; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; text-align:center; position:relative;
+  }
+  .hydro-circle-svg{ position:absolute; inset:0; width:100%; height:100%; }
+  .hydro-circle-icon{ color:var(--h-blue-500); margin-bottom:2px; z-index:1; }
+  .hydro-circle-icon svg{ width:18px; height:18px; }
+  .hydro-circle-current{ font-size:17px; font-weight:800; color:var(--h-slate-900); line-height:1; z-index:1; }
+  .hydro-circle-goal{ font-size:10px; color:var(--h-slate-400); margin-top:2px; z-index:1; }
+  .hydro-circle-percent{ font-size:12px; font-weight:700; color:var(--h-blue-600); margin-top:4px; z-index:1; }
+
+  .hydro-history-section{ display:flex; flex-direction:column; gap:12px; }
+  .hydro-history-title{ font-size:14px; font-weight:700; color:var(--h-slate-800); margin:0; }
+  .hydro-history-container{
+    display:grid; grid-template-columns:repeat(4,1fr); gap:8px;
+    min-height:90px; align-items:center;
+  }
+  .hydro-history-empty{ font-size:12px; color:var(--h-slate-400); grid-column:1/-1; text-align:center; padding:12px 0; }
+
+  .hydro-history-item{
+    background:rgba(248,250,252,0.8); border:1px solid rgba(226,232,240,0.6);
+    border-radius:16px; padding:10px; display:flex; flex-direction:column;
+    align-items:center; justify-content:space-between; gap:8px; min-width:55px;
+  }
+  .hydro-history-time{ font-size:11px; font-weight:500; color:var(--h-slate-500); }
+  .hydro-history-bar{
+    width:28px; height:40px; background:var(--h-blue-100); border-radius:0 0 8px 8px;
+    position:relative; overflow:hidden; border:1px solid var(--h-blue-200);
+  }
+  .hydro-history-bar-fill{
+    position:absolute; bottom:0; width:100%; height:85%;
+    background:linear-gradient(180deg, var(--h-blue-500), #60a5fa);
+    border-radius:0 0 6px 6px;
+  }
+  .hydro-history-amount{ font-size:10px; font-weight:600; color:var(--h-slate-600); }
+
+  .hydro-add-btn{
+    width:100%; background:var(--h-blue-600); color:#fff; font-weight:600;
+    padding:16px; border-radius:16px; border:none; cursor:pointer;
+    box-shadow:0 10px 20px -6px rgba(59,130,246,0.35);
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    font-size:15px; transition:background .15s, transform .1s;
+  }
+  .hydro-add-btn:hover{ background:var(--h-blue-700); }
+  .hydro-add-btn:active{ transform:scale(0.98); }
+  .hydro-add-btn svg{ width:18px; height:18px; }
+
+  /* Modal adicionar água */
+  .hydro-modal-overlay{
+    position:fixed; inset:0; z-index:50;
+    background:rgba(0,0,0,0.5);
+    display:flex; align-items:flex-end; justify-content:center;
+    opacity:0; pointer-events:none; transition:opacity .3s ease;
+  }
+  .hydro-modal-overlay.open{ opacity:1; pointer-events:auto; }
+
+  .hydro-modal-content{
+    width:100%; max-width:480px; background:#fff;
+    border-radius:24px 24px 0 0; box-shadow:0 -10px 30px rgba(0,0,0,0.2);
+    padding:24px; display:flex; flex-direction:column; gap:20px;
+    border-top:1px solid var(--h-slate-100);
+    transform:translateY(100%); transition:transform .3s ease-out;
+  }
+  .hydro-modal-overlay.open .hydro-modal-content{ transform:translateY(0); }
+
+  .hydro-modal-header{ display:flex; align-items:center; justify-content:space-between; }
+  .hydro-modal-title{ font-size:17px; font-weight:700; color:var(--h-slate-900); margin:0; }
+  .hydro-modal-close{
+    width:36px; height:36px; border-radius:999px; background:var(--h-slate-100);
+    border:none; cursor:pointer; display:flex; align-items:center; justify-content:center;
+    color:var(--h-slate-500); transition:background .15s;
+  }
+  .hydro-modal-close:hover{ background:var(--h-slate-200); }
+  .hydro-modal-close svg{ width:18px; height:18px; }
+
+  .hydro-quick-grid{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .hydro-quick-btn{
+    border:2px solid var(--h-blue-200); background:none; border-radius:16px;
+    padding:16px; display:flex; align-items:center; justify-content:center;
+    cursor:pointer; transition:border-color .15s, background .15s, transform .1s;
+  }
+  .hydro-quick-btn:hover{ border-color:var(--h-blue-500); background:var(--h-blue-50); }
+  .hydro-quick-btn:active{ transform:scale(0.97); }
+  .hydro-quick-btn span{ font-size:14px; font-weight:600; color:var(--h-blue-600); }
+
+  .hydro-custom-section{
+    display:flex; flex-direction:column; gap:8px; padding-top:12px;
+    border-top:1px solid var(--h-slate-100);
+  }
+  .hydro-custom-label{ font-size:12px; font-weight:500; color:var(--h-slate-600); }
+  .hydro-custom-row{ display:flex; gap:8px; }
+  .hydro-custom-input{
+    flex:1; background:var(--h-slate-50); border:1px solid var(--h-slate-200);
+    border-radius:12px; padding:10px 14px; font-size:14px; font-weight:600;
+    color:var(--h-slate-800); outline:none;
+  }
+  .hydro-custom-input:focus{ border-color:var(--h-blue-500); }
+  .hydro-custom-btn{
+    background:var(--h-blue-600); color:#fff; font-weight:600; padding:10px 20px;
+    border-radius:12px; border:none; cursor:pointer; font-size:14px; transition:background .15s;
+  }
+  .hydro-custom-btn:hover{ background:var(--h-blue-700); }
+
+  /* ============================================================
+     Estilos do painel de Receitas (escopados dentro de #panel-receitas)
+     ============================================================ */
+  #panel-receitas{
+    --r-bg: #f3f4f6;
+    --r-card: #ffffff;
+    --r-green: #16a34a;
+    --r-green-dark: #15803d;
+    --r-text: #111827;
+    --r-muted: #6b7280;
+    --r-border: #e5e7eb;
+    --r-tag-cafe-bg:#fef3e2; --r-tag-cafe-fg:#c2740a;
+    --r-tag-almjan-bg:#eef2ff; --r-tag-almjan-fg:#4338ca;
+    --r-tag-treino-bg:#e8f6ec; --r-tag-treino-fg:#1e8e3e;
+  }
+
+  #panel-receitas .r-phone{
+    width:100%;
+    background:transparent;
+  }
+  #panel-receitas header{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    margin-bottom:18px;
+  }
+  #panel-receitas header h1{
+    font-size:22px;
+    margin:0 0 4px;
+    letter-spacing:-0.02em;
+  }
+  #panel-receitas .r-subtitle{
+    margin:0;
+    color:var(--r-muted);
+    font-size:14px;
+  }
+
+
+  #panel-receitas .r-tabs{
+    display:flex;
+    gap:20px;
+    overflow-x:auto;
+    padding-bottom:10px;
+    margin-bottom:16px;
+    scrollbar-width:none;
+  }
+  #panel-receitas .r-tabs::-webkit-scrollbar{display:none;}
+  #panel-receitas .r-tab{
+    background:none;
+    border:none;
+    font-size:15px;
+    color:var(--r-muted);
+    padding:0 0 8px;
+    cursor:pointer;
+    white-space:nowrap;
+    font-family:inherit;
+  }
+  #panel-receitas .r-tab.active{
+    color:var(--r-green);
+    font-weight:700;
+    border-bottom:2.5px solid var(--r-green);
+  }
+
+  #panel-receitas .r-card{
+    display:none;
+    background:var(--r-card);
+    border-radius:16px;
+    padding:14px;
+    margin-bottom:14px;
+    gap:12px;
+    box-shadow:0 1px 2px rgba(0,0,0,0.04);
+    cursor:pointer;
+    transition:box-shadow .15s ease, transform .1s ease;
+  }
+  #panel-receitas .r-card.show{display:flex;}
+  #panel-receitas .r-card:hover{box-shadow:0 4px 14px rgba(0,0,0,0.08); transform:translateY(-1px);}
+
+  #panel-receitas .r-thumb{
+    width:88px;
+    height:88px;
+    border-radius:12px;
+    flex-shrink:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:34px;
+    background-size:cover;
+    background-position:center;
+  }
+  #panel-receitas .r-cafe{background:linear-gradient(135deg,#f6d19a,#e8a95f);}
+  #panel-receitas .r-almjan{background:linear-gradient(135deg,#3a3a3a,#5c5c5c);}
+  #panel-receitas .r-treino{background:linear-gradient(135deg,#2f6f4e,#4d9d73);}
+
+  #panel-receitas .r-info{
+    flex:1;
+    min-width:0;
+    display:flex;
+    flex-direction:column;
+    gap:5px;
+  }
+  #panel-receitas .r-info h3{
+    margin:0;
+    font-size:16px;
+  }
+  #panel-receitas .r-tag{
+    align-self:flex-start;
+    font-size:12px;
+    font-weight:600;
+    padding:2px 10px;
+    border-radius:999px;
+  }
+  #panel-receitas .r-tag.r-cafe{background:var(--r-tag-cafe-bg); color:var(--r-tag-cafe-fg);}
+  #panel-receitas .r-tag.r-almjan{background:var(--r-tag-almjan-bg); color:var(--r-tag-almjan-fg);}
+  #panel-receitas .r-tag.r-treino{background:var(--r-tag-treino-bg); color:var(--r-tag-treino-fg);}
+
+  #panel-receitas .r-desc{
+    margin:0;
+    font-size:13.5px;
+    color:var(--r-muted);
+    line-height:1.35;
+    display:-webkit-box;
+    -webkit-line-clamp:2;
+    -webkit-box-orient:vertical;
+    overflow:hidden;
+  }
+
+  #panel-receitas .r-empty{
+    text-align:center;
+    color:var(--r-muted);
+    padding:60px 0;
+    font-size:14px;
+    display:none;
+  }
+  #panel-receitas .r-empty.show{display:block;}
+
+  #panel-receitas .r-overlay{
+    position:fixed;
+    inset:0;
+    background:rgba(17,24,39,0.45);
+    display:none;
+    align-items:flex-end;
+    justify-content:center;
+    z-index:50;
+  }
+  #panel-receitas .r-overlay.show{display:flex;}
+  #panel-receitas .r-overlay-center{
+    align-items:center;
+    padding:20px;
+  }
+  #panel-receitas .r-modal{
+    background:#fff;
+    width:100%;
+    max-width:420px;
+    border-radius:20px 20px 0 0;
+    padding:22px 20px 26px;
+    max-height:88vh;
+    overflow-y:auto;
+  }
+  #panel-receitas .r-overlay-center .r-modal{
+    border-radius:20px;
+    max-height:85vh;
+  }
+  #panel-receitas .r-modal-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:16px;
+  }
+  #panel-receitas .r-modal-head h2{
+    margin:0;
+    font-size:19px;
+  }
+  #panel-receitas .r-close-btn{
+    width:30px;
+    height:30px;
+    border-radius:50%;
+    border:none;
+    background:#f3f4f6;
+    color:#374151;
+    font-size:16px;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex-shrink:0;
+  }
+  #panel-receitas .r-field{
+    margin-bottom:16px;
+  }
+  #panel-receitas .r-field label{
+    display:block;
+    font-size:13px;
+    font-weight:600;
+    color:#374151;
+    margin-bottom:6px;
+  }
+  #panel-receitas .r-field input,
+  #panel-receitas .r-field textarea{
+    width:100%;
+    border:1px solid var(--r-border);
+    border-radius:10px;
+    padding:11px 12px;
+    font-size:14px;
+    font-family:inherit;
+    color:var(--r-text);
+    background:#fff;
+  }
+  #panel-receitas .r-field input:focus,
+  #panel-receitas .r-field textarea:focus{
+    outline:none;
+    border-color:var(--r-green);
+    box-shadow:0 0 0 3px rgba(22,163,74,0.15);
+  }
+  #panel-receitas .r-field textarea{
+    resize:vertical;
+    min-height:90px;
+    line-height:1.4;
+  }
+  #panel-receitas .r-hint{
+    font-size:12px;
+    color:var(--r-muted);
+    margin-top:5px;
+  }
+  #panel-receitas .r-meal-options{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+  }
+  #panel-receitas .r-meal-chip{
+    border:1px solid var(--r-border);
+    background:#fff;
+    border-radius:999px;
+    padding:8px 14px;
+    font-size:13px;
+    cursor:pointer;
+    color:var(--r-text);
+    font-family:inherit;
+  }
+  #panel-receitas .r-meal-chip.selected{
+    background:var(--r-green);
+    border-color:var(--r-green);
+    color:#fff;
+    font-weight:600;
+  }
+  #panel-receitas .r-save-btn{
+    width:100%;
+    background:var(--r-green);
+    color:#fff;
+    border:none;
+    border-radius:12px;
+    padding:14px;
+    font-size:15px;
+    font-weight:700;
+    cursor:pointer;
+    margin-top:6px;
+  }
+  #panel-receitas .r-save-btn:hover{background:var(--r-green-dark);}
+  #panel-receitas .r-error{
+    color:#dc2626;
+    font-size:12px;
+    margin-top:5px;
+    display:none;
+  }
+  #panel-receitas .r-error.show{display:block;}
+
+  #panel-receitas .r-view-head{
+    display:flex;
+    align-items:flex-start;
+    gap:14px;
+    margin-bottom:18px;
+  }
+  #panel-receitas .r-view-thumb{
+    width:64px;
+    height:64px;
+    border-radius:12px;
+    flex-shrink:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:28px;
+    background-size:cover;
+    background-position:center;
+  }
+  #panel-receitas .r-view-title-wrap{
+    flex:1;
+    min-width:0;
+  }
+  #panel-receitas .r-view-title-wrap h2{
+    margin:0 0 6px;
+    font-size:19px;
+    line-height:1.25;
+    word-break:break-word;
+  }
+  #panel-receitas .r-view-actions{
+    display:flex;
+    gap:8px;
+    flex-shrink:0;
+  }
+  #panel-receitas .r-view-section-title{
+    font-size:12px;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:.04em;
+    color:var(--r-muted);
+    margin:0 0 10px;
+  }
+  #panel-receitas .r-ingredient-list{
+    list-style:none;
+    margin:0 0 4px;
+    padding:0;
+    display:flex;
+    flex-direction:column;
+    gap:9px;
+  }
+  #panel-receitas .r-ingredient-list li{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    font-size:14.5px;
+    color:var(--r-text);
+    padding:10px 12px;
+    background:#f9fafb;
+    border-radius:10px;
+  }
+  #panel-receitas .r-ingredient-dot{
+    width:7px;
+    height:7px;
+    border-radius:50%;
+    background:var(--r-green);
+    flex-shrink:0;
+  }
+
+  #panel-receitas .r-recipe-link{
+    display:none;
+    align-items:center;
+    gap:8px;
+    width:100%;
+    background:#eef2ff;
+    color:#4338ca;
+    border:none;
+    border-radius:10px;
+    padding:12px 14px;
+    font-size:14px;
+    font-weight:600;
+    font-family:inherit;
+    cursor:pointer;
+    margin:16px 0 4px;
+    text-align:left;
+  }
+  #panel-receitas .r-recipe-link.show{display:flex;}
+  #panel-receitas .r-recipe-link:hover{background:#e0e5fc;}
+
+  #panel-receitas .r-photo-picker-wrap{
+    text-align:center;
+    margin-bottom:18px;
+  }
+  #panel-receitas .r-photo-picker{
+    position:relative;
+    display:inline-block;
+    cursor:pointer;
+  }
+  #panel-receitas .r-photo-picker .r-thumb{
+    width:96px;
+    height:96px;
+    margin:0 auto;
+  }
+  #panel-receitas .r-cam-badge{
+    position:absolute;
+    bottom:-4px;
+    right:-4px;
+    width:30px;
+    height:30px;
+    border-radius:50%;
+    background:var(--r-green);
+    color:#fff;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:14px;
+    border:2px solid #fff;
+  }
+
+  /* ============================================================
+     Estilos do painel de Refeições (escopados dentro de #panel-refeicoes)
+     ============================================================ */
+  #panel-refeicoes{
+    --m-navy:#0e1a3a;
+    --m-card-bg:#ffffff;
+    --m-text-muted:#5b6478;
+    --m-radius:20px;
+    color:var(--m-navy);
+  }
+  #panel-refeicoes .m-header{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    padding:0 0 18px;
+  }
+  #panel-refeicoes .m-header-left{display:flex; gap:14px; align-items:flex-start; width:100%;}
+  #panel-refeicoes .m-greeting{width:100%;}
+  #panel-refeicoes .m-name-edit-btn{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    background:none;
+    border:none;
+    cursor:pointer;
+    padding:2px 0;
+    font-family:inherit;
+    text-align:left;
+  }
+  #panel-refeicoes .m-name-edit-btn h1{ margin:0 0 4px; }
+  #panel-refeicoes .m-name-edit-btn svg{
+    flex-shrink:0;
+    width:16px;height:16px;
+    stroke:var(--m-text-muted);
+    opacity:0;
+    transition:opacity .15s ease;
+  }
+  #panel-refeicoes .m-name-edit-btn:hover svg{ opacity:1; }
+  #panel-refeicoes .m-name-input{
+    font-size:1.9rem;
+    font-weight:800;
+    color:var(--m-navy);
+    font-family:inherit;
+    border:none;
+    border-bottom:2px solid var(--m-navy);
+    background:transparent;
+    padding:0 0 2px;
+    width:100%;
+    max-width:260px;
+    outline:none;
+  }
+  #panel-refeicoes .m-greeting h1{
+    font-size:1.9rem;
+    margin:0 0 4px;
+    font-weight:800;
+    color:var(--m-navy);
+  }
+  #panel-refeicoes .m-greeting p{
+    margin:0;
+    color:var(--m-text-muted);
+    font-size:0.98rem;
+  }
+
+  #panel-refeicoes .m-date-bar{
+    margin:6px 0 22px;
+    background:#fff;
+    border-radius:16px;
+    padding:10px 10px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:8px;
+    box-shadow:0 2px 10px rgba(14,26,58,0.05);
+    border:none;
+    width:100%;
+    font-family:inherit;
+  }
+  #panel-refeicoes .m-date-nav{
+    flex-shrink:0;
+    width:38px;height:38px;
+    border-radius:50%;
+    background:#f2f4f9;
+    border:none;
+    display:flex;align-items:center;justify-content:center;
+    cursor:pointer;
+    transition:background .15s ease;
+  }
+  #panel-refeicoes .m-date-nav:hover{ background:#e6e9f2; }
+  #panel-refeicoes .m-date-nav svg{ stroke:var(--m-navy); }
+  #panel-refeicoes .m-date-center{
+    flex:1;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:10px;
+    font-weight:700;
+    font-size:1.02rem;
+    color:var(--m-navy);
+    background:none;
+    border:none;
+    padding:8px 4px;
+    cursor:pointer;
+    font-family:inherit;
+    text-align:center;
+  }
+  #panel-refeicoes .m-date-bar svg{flex-shrink:0;}
+
+  #panel-refeicoes .m-meals{display:flex; flex-direction:column; gap:18px;}
+  #panel-refeicoes .m-meal-card{
+    display:flex;
+    background:var(--m-card-bg);
+    border-radius:var(--m-radius);
+    overflow:hidden;
+    box-shadow:0 4px 14px rgba(14,26,58,0.06);
+    border:none;
+    width:100%;
+    text-align:left;
+    cursor:pointer;
+    font-family:inherit;
+  }
+  #panel-refeicoes .m-accent{width:8px; flex-shrink:0;}
+  #panel-refeicoes .m-meal-body{
+    flex:1;
+    padding:20px 18px 20px 16px;
+    display:flex;
+    gap:16px;
+  }
+  #panel-refeicoes .m-icon-circle{
+    width:56px;height:56px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    flex-shrink:0;
+    color:#fff;
+  }
+  #panel-refeicoes .m-meal-content{flex:1;}
+  #panel-refeicoes .m-meal-title-row{
+    display:flex;justify-content:space-between;align-items:center;
+    margin-bottom:10px;
+  }
+  #panel-refeicoes .m-meal-title-row h2{
+    font-size:1.35rem;
+    margin:0;
+    font-weight:800;
+    color:var(--m-navy);
+  }
+  #panel-refeicoes .m-chevron{
+    color:#0e1a3a;
+    transition:transform .25s ease;
+    flex-shrink:0;
+  }
+  #panel-refeicoes .m-meal-card.open .m-chevron{transform:rotate(90deg);}
+  #panel-refeicoes .m-items{
+    list-style:none;
+    margin:0;padding:0;
+    max-height:0;
+    overflow:hidden;
+    transition:max-height .3s ease;
+  }
+  #panel-refeicoes .m-meal-card.open .m-items{max-height:300px;}
+  #panel-refeicoes .m-items li{
+    display:flex;
+    align-items:flex-start;
+    gap:10px;
+    padding:6px 0;
+    font-size:0.98rem;
+    color:#2b3350;
+  }
+  #panel-refeicoes .m-items li::before{
+    content:'';
+    width:6px;height:6px;
+    border-radius:50%;
+    margin-top:8px;
+    flex-shrink:0;
+    background:var(--m-dot-color, #9aa0b4);
+  }
+  #panel-refeicoes .m-items li.m-empty-item{
+    color:var(--m-text-muted);
+    font-style:italic;
+  }
+  #panel-refeicoes .m-items li.m-empty-item::before{
+    display:none;
+  }
+
+  /* cores por refeição */
+  #panel-refeicoes .m-cafe .m-accent, #panel-refeicoes .m-cafe .m-items li::before{background:#f5a623;}
+  #panel-refeicoes .m-cafe .m-icon-circle{background:#f5a623;}
+  #panel-refeicoes .m-almoco .m-accent, #panel-refeicoes .m-almoco .m-items li::before{background:#5cb85c;}
+  #panel-refeicoes .m-almoco .m-icon-circle{background:#5cb85c;}
+  #panel-refeicoes .m-pre .m-accent, #panel-refeicoes .m-pre .m-items li::before{background:#8b5cf6;}
+  #panel-refeicoes .m-pre .m-icon-circle{background:#8b5cf6;}
+  #panel-refeicoes .m-pos .m-accent, #panel-refeicoes .m-pos .m-items li::before{background:#2f8fe0;}
+  #panel-refeicoes .m-pos .m-icon-circle{background:#2f8fe0;}
+  #panel-refeicoes .m-jantar .m-accent, #panel-refeicoes .m-jantar .m-items li::before{background:#f2622e;}
+  #panel-refeicoes .m-jantar .m-icon-circle{background:#f2622e;}
+
+  /* Modal: nova refeição */
+  #panel-refeicoes .m-overlay{
+    position:fixed;inset:0;
+    background:rgba(14,26,58,0.45);
+    display:none;
+    align-items:flex-end;
+    justify-content:center;
+    z-index:50;
+  }
+  #panel-refeicoes .m-overlay.show{display:flex;}
+  #panel-refeicoes .m-modal{
+    background:#fff;
+    width:100%;
+    max-width:430px;
+    border-radius:24px 24px 0 0;
+    padding:26px 22px 28px;
+    max-height:88vh;
+    overflow-y:auto;
+    animation:mSlideUp .25s ease;
+  }
+  @keyframes mSlideUp{from{transform:translateY(30px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+  #panel-refeicoes .m-modal h3{margin:0 0 18px;font-size:1.3rem;font-weight:800;color:var(--m-navy);}
+  #panel-refeicoes .m-field{margin-bottom:16px;}
+  #panel-refeicoes .m-field label{
+    display:block;font-size:0.85rem;font-weight:700;color:var(--m-text-muted);
+    margin-bottom:7px;
+  }
+  #panel-refeicoes .m-field select, #panel-refeicoes .m-field input{
+    width:100%;
+    padding:12px 14px;
+    border-radius:12px;
+    border:1.5px solid #e1e5ee;
+    font-size:0.98rem;
+    font-family:inherit;
+    color:var(--m-navy);
+    background:#fafbfd;
+  }
+  #panel-refeicoes .m-field select:focus, #panel-refeicoes .m-field input:focus{outline:none;border-color:#8b5cf6;}
+  #panel-refeicoes .m-ingredient-row{display:flex;gap:8px;margin-bottom:8px;}
+  #panel-refeicoes .m-ingredient-row input{flex:1;}
+  #panel-refeicoes .m-remove-ing{
+    background:#fbeaea;border:none;color:#e05252;
+    width:40px;border-radius:10px;cursor:pointer;font-size:1.1rem;flex-shrink:0;
+  }
+  #panel-refeicoes .m-add-ing-btn{
+    background:none;border:1.5px dashed #c7cce0;color:var(--m-text-muted);
+    width:100%;padding:10px;border-radius:12px;font-weight:700;font-size:0.9rem;
+    cursor:pointer;margin-top:2px;margin-bottom:20px;font-family:inherit;
+  }
+  #panel-refeicoes .m-modal-actions{display:flex;gap:10px;}
+  #panel-refeicoes .m-btn{
+    flex:1;padding:14px;border-radius:14px;border:none;
+    font-weight:800;font-size:0.98rem;cursor:pointer;font-family:inherit;
+  }
+  #panel-refeicoes .m-btn-cancel{background:#f1f2f7;color:var(--m-navy);}
+  #panel-refeicoes .m-btn-save{background:#0e1a3a;color:#fff;}
+
+  /* ============================================================
+     Estilos do painel de Cardápio (escopados dentro de #panel-cardapio)
+     ============================================================ */
+  #panel-cardapio *{
+    box-sizing: border-box;
+  }
+  #panel-cardapio{
+    color: #1a1a1a;
+  }
+  #panel-cardapio .container {
+    width: 100%;
+    max-width: 480px;
+    background-color: transparent;
+    padding: 0;
+  }
+  #panel-cardapio .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 20px;
+  }
+  #panel-cardapio .header h1 {
+    font-size: 26px;
+    font-weight: 700;
+    color: #111;
+    margin: 0;
+  }
+  #panel-cardapio .header p {
+    font-size: 13px;
+    color: #666;
+    margin-top: 2px;
+  }
+  #panel-cardapio .calendar-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #fafafa;
+    padding: 12px;
+    border-radius: 16px;
+    margin-bottom: 24px;
+    border: 1px solid #eee;
+  }
+  #panel-cardapio .calendar-nav span {
+    font-size: 18px;
+    color: #444;
+    cursor: pointer;
+  }
+  #panel-cardapio .days-container {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    width: 100%;
+    justify-content: space-between;
+    padding: 0 4px;
+  }
+  #panel-cardapio .day-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 8px 6px;
+    border-radius: 12px;
+    cursor: pointer;
+    font-size: 11px;
+    color: #666;
+    min-width: 38px;
+    transition: all 0.2s;
+  }
+  #panel-cardapio .day-item.active {
+    background-color: #2e7d32;
+    color: white;
+    font-weight: 600;
+  }
+  #panel-cardapio .day-item .number {
+    font-size: 14px;
+    font-weight: 700;
+    margin-top: 2px;
+  }
+  #panel-cardapio .meal-section {
+    margin-bottom: 20px;
+  }
+  #panel-cardapio .meal-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    font-size: 16px;
+    font-weight: 700;
+    color: #222;
+  }
+  #panel-cardapio .meal-time {
+    font-size: 13px;
+    color: #888;
+    font-weight: 400;
+    margin-left: auto;
+  }
+  #panel-cardapio .btn-add-meal {
+    background: none;
+    border: 2px dashed #ccc;
+    color: #666;
+    width: 100%;
+    padding: 12px;
+    border-radius: 16px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: all 0.2s;
+    margin-bottom: 10px;
+  }
+  #panel-cardapio .btn-add-meal:hover {
+    border-color: #2e7d32;
+    color: #2e7d32;
+    background: #f9fbf9;
+  }
+  #panel-cardapio .meal-card {
+    background: #fdfdfd;
+    border: 1px solid #eee;
+    border-radius: 16px;
+    padding: 14px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+    margin-bottom: 10px;
+  }
+  #panel-cardapio .meal-card-content h3 {
+    font-size: 15px;
+    font-weight: 700;
+    color: #111;
+    margin-bottom: 4px;
+  }
+  #panel-cardapio .meal-card-content p {
+    font-size: 13px;
+    color: #666;
+    line-height: 1.4;
+  }
+  #panel-cardapio .meal-options {
+    font-size: 16px;
+    color: #e53935;
+    cursor: pointer;
+    padding: 4px;
+    background: #ffebee;
+    border-radius: 8px;
+    transition: background 0.2s;
+  }
+  #panel-cardapio .meal-options:hover {
+    background: #ffcdd2;
+  }
+  #panel-cardapio .modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.6);
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    padding: 20px;
+    backdrop-filter: blur(3px);
+  }
+  #panel-cardapio .modal {
+    background: white;
+    width: 100%;
+    max-width: 400px;
+    border-radius: 24px;
+    padding: 24px;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+    animation: cpScaleUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    max-height: 90vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+  }
+  @keyframes cpScaleUp {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+  }
+  #panel-cardapio .modal h2 {
+    font-size: 20px;
+    margin-bottom: 18px;
+    color: #111;
+    font-weight: 700;
+  }
+  #panel-cardapio .form-group {
+    margin-bottom: 16px;
+  }
+  #panel-cardapio .form-group label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #444;
+    margin-bottom: 6px;
+  }
+  #panel-cardapio .form-group input, #panel-cardapio .form-group textarea {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1px solid #ddd;
+    border-radius: 12px;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    background: #fafafa;
+  }
+  #panel-cardapio .form-group input:focus, #panel-cardapio .form-group textarea:focus {
+    border-color: #2e7d32;
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.1);
+  }
+  #panel-cardapio .checkbox-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    background: #fafafa;
+    padding: 12px;
+    border-radius: 12px;
+    border: 1px solid #ddd;
+    max-height: 160px;
+    overflow-y: auto;
+  }
+  #panel-cardapio .checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    color: #333;
+    cursor: pointer;
+    padding: 4px 0;
+    user-select: none;
+  }
+  #panel-cardapio .checkbox-label input {
+    width: 18px;
+    height: 18px;
+    accent-color: #2e7d32;
+    cursor: pointer;
+  }
+  #panel-cardapio .modal-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+  }
+  #panel-cardapio .btn-cancelar {
+    flex: 1;
+    background: #f0f0f0;
+    color: #333;
+    border: none;
+    padding: 12px;
+    border-radius: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  #panel-cardapio .btn-cancelar:hover {
+    background: #e4e4e4;
+  }
+  #panel-cardapio .btn-salvar {
+    flex: 1;
+    background: #2e7d32;
+    color: white;
+    border: none;
+    padding: 12px;
+    border-radius: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  #panel-cardapio .btn-salvar:hover {
+    background: #1b5e20;
+  }
+  #panel-cardapio .icon-circle {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+  }
+  #panel-cardapio .lista-selecao-pratos {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    overflow-y: auto;
+    margin-bottom: 16px;
+    max-height: 300px;
+    padding-right: 4px;
+  }
+  #panel-cardapio .item-selecao-prato {
+    background: #fafafa;
+    border: 1px solid #e0e0e0;
+    padding: 14px;
+    border-radius: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  #panel-cardapio .item-selecao-prato:hover {
+    border-color: #2e7d32;
+    background: #f1f8f1;
+    transform: translateY(-1px);
+  }
+  #panel-cardapio .item-selecao-prato h4 {
+    font-size: 15px;
+    color: #111;
+    margin-bottom: 4px;
+    font-weight: 700;
+  }
+  #panel-cardapio .item-selecao-prato p {
+    font-size: 13px;
+    color: #666;
+    line-height: 1.3;
+  }
+  #panel-cardapio .toast {
+    visibility: hidden;
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #333;
+    color: #fff;
+    padding: 12px 24px;
+    border-radius: 30px;
+    font-size: 14px;
+    z-index: 2000;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    transition: visibility 0.2s, opacity 0.2s;
+    opacity: 0;
+  }
+  #panel-cardapio .toast.show {
+    visibility: visible;
+    opacity: 1;
+  }
+</style>
+</head>
+<body>
+
+<div class="app-frame">
+  <div class="content">
+
+    <!-- Painel: Refeições -->
+    <section class="panel active" id="panel-refeicoes">
+
+      <div class="m-header">
+        <div class="m-header-left">
+          <div class="m-greeting">
+            <button class="m-name-edit-btn" id="mNameEditBtn" type="button" aria-label="Alterar nome">
+              <h1 id="mGreetingName">Olá, Gabriel!</h1>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5b6478" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="M15 5l4 4"/></svg>
+            </button>
+            <input class="m-name-input" id="mNameInput" type="text" maxlength="30" style="display:none;">
+            <p>Aqui está o seu plano alimentar</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="m-date-bar" id="mDateBar">
+        <button class="m-date-nav" id="mDatePrev" type="button" aria-label="Dia anterior">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0e1a3a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <button class="m-date-center" id="mDateCenter" type="button">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0e1a3a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+          <span id="mDateLabel">Quarta-feira, 29 de maio de 2024</span>
+        </button>
+        <button class="m-date-nav" id="mDateNext" type="button" aria-label="Próximo dia">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0e1a3a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </div>
+
+      <div class="m-meals">
+
+        <button class="m-meal-card m-cafe open" data-meal>
+          <div class="m-accent"></div>
+          <div class="m-meal-body">
+            <div class="m-icon-circle">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4Z"/><line x1="6" y1="2" x2="6" y2="4"/><line x1="10" y1="2" x2="10" y2="4"/><line x1="14" y1="2" x2="14" y2="4"/></svg>
+            </div>
+            <div class="m-meal-content">
+              <div class="m-meal-title-row">
+                <h2>Café da manhã</h2>
+                <svg class="m-chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0e1a3a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+              </div>
+              <ul class="m-items">
+                <li>1 xícara de leite desnatado</li>
+                <li>3 colheres de sopa de aveia</li>
+                <li>1 banana média</li>
+                <li>1 colher de chá de mel</li>
+              </ul>
+            </div>
+          </div>
+        </button>
+
+        <button class="m-meal-card m-almoco open" data-meal>
+          <div class="m-accent"></div>
+          <div class="m-meal-body">
+            <div class="m-icon-circle">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h1a2 2 0 0 0 2-2V2"/><path d="M6 11v11"/><path d="M17 2a5 5 0 0 0-5 5v6h5V2z"/><path d="M17 13v10"/></svg>
+            </div>
+            <div class="m-meal-content">
+              <div class="m-meal-title-row">
+                <h2>Almoço</h2>
+                <svg class="m-chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0e1a3a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+              </div>
+              <ul class="m-items">
+                <li>150g de frango grelhado</li>
+                <li>1 concha de arroz integral</li>
+                <li>1 concha de feijão</li>
+                <li>Salada verde à vontade</li>
+              </ul>
+            </div>
+          </div>
+        </button>
+
+        <button class="m-meal-card m-pre open" data-meal>
+          <div class="m-accent"></div>
+          <div class="m-meal-body">
+            <div class="m-icon-circle">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            </div>
+            <div class="m-meal-content">
+              <div class="m-meal-title-row">
+                <h2>Pré treino</h2>
+                <svg class="m-chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0e1a3a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+              </div>
+              <ul class="m-items">
+                <li>1 banana média</li>
+                <li>1 medida de whey protein</li>
+                <li>1 colher de pasta de amendoim</li>
+              </ul>
+            </div>
+          </div>
+        </button>
+
+        <button class="m-meal-card m-pos open" data-meal>
+          <div class="m-accent"></div>
+          <div class="m-meal-body">
+            <div class="m-icon-circle">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v4"/><path d="M14 2v4"/><path d="M5 8h14l-1.5 12.5A2 2 0 0 1 15.5 22h-7a2 2 0 0 1-2-1.5L5 8Z"/></svg>
+            </div>
+            <div class="m-meal-content">
+              <div class="m-meal-title-row">
+                <h2>Pós treino</h2>
+                <svg class="m-chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0e1a3a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+              </div>
+              <ul class="m-items">
+                <li>1 medida de whey protein</li>
+                <li>1 banana média</li>
+                <li>200ml de água de coco</li>
+              </ul>
+            </div>
+          </div>
+        </button>
+
+        <button class="m-meal-card m-jantar open" data-meal>
+          <div class="m-accent"></div>
+          <div class="m-meal-body">
+            <div class="m-icon-circle">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 0 0-9 9h18a9 9 0 0 0-9-9Z"/><line x1="3" y1="17" x2="21" y2="17"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+            </div>
+            <div class="m-meal-content">
+              <div class="m-meal-title-row">
+                <h2>Jantar</h2>
+                <svg class="m-chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0e1a3a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+              </div>
+              <ul class="m-items">
+                <li>120g de peixe grelhado</li>
+                <li>1 concha de batata doce</li>
+                <li>Legumes cozidos à vontade</li>
+              </ul>
+            </div>
+          </div>
+        </button>
+
+      </div>
+
+      <div class="m-overlay" id="mOverlay">
+        <div class="m-modal">
+          <h3>Nova refeição</h3>
+
+          <div class="m-field">
+            <label for="mTargetSelect">Onde essa refeição vai entrar?</label>
+            <select id="mTargetSelect">
+              <option value="m-cafe">Café da manhã</option>
+              <option value="m-almoco">Almoço</option>
+              <option value="m-pre">Pré-treino</option>
+              <option value="m-pos">Pós-treino</option>
+              <option value="m-jantar">Jantar</option>
+            </select>
+          </div>
+
+          <div class="m-field">
+            <label for="mNomePrato">Nome do prato (opcional)</label>
+            <input type="text" id="mNomePrato" placeholder="Ex: Aveia com banana">
+          </div>
+
+          <div class="m-field">
+            <label>Itens</label>
+            <div id="mIngredientList">
+              <div class="m-ingredient-row">
+                <input type="text" class="m-ing-input" placeholder="Ex: 1 fatia de pão integral">
+                <button type="button" class="m-remove-ing">✕</button>
+              </div>
+            </div>
+            <button type="button" class="m-add-ing-btn" id="mAddIngBtn">+ Adicionar item</button>
+          </div>
+
+          <div class="m-modal-actions">
+            <button type="button" class="m-btn m-btn-cancel" id="mCancelBtn">Cancelar</button>
+            <button type="button" class="m-btn m-btn-save" id="mSaveBtn">Salvar refeição</button>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- Painel: Hidratação -->
+    <section class="panel" id="panel-hidratacao">
+      <div class="hydro-card">
+
+        <!-- Cabeçalho -->
+        <div class="hydro-header">
+          <div class="hydro-header-left">
+            <div class="hydro-icon-circle">
+              <svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/></svg>
+            </div>
+            <div>
+              <h1 class="hydro-title">Hidratação</h1>
+              <p class="hydro-date" id="currentDateDisplay">Carregando data...</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Cartão Principal de Progresso -->
+        <div class="hydro-progress-card">
+          <div class="hydro-grid">
+
+            <!-- Meta Diária e Falta -->
+            <div class="hydro-goal-col">
+              <div>
+                <span class="hydro-goal-label">Meta diária</span>
+
+                <div id="viewMetaMode" class="hydro-goal-view">
+                  <span class="hydro-goal-amount" id="metaAmount">2,5</span>
+                  <span class="hydro-goal-unit" id="metaUnit">L</span>
+                  <button id="editMetaBtn" class="hydro-icon-btn" title="Editar meta">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+                  </button>
+                </div>
+
+                <div id="editMetaMode" class="hydro-goal-edit">
+                  <input type="number" id="editMetaInput" class="hydro-goal-input" step="100" min="100">
+                  <span class="hydro-goal-edit-unit">ml</span>
+                  <button id="saveMetaBtn" class="hydro-save-btn" title="Salvar meta">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                  </button>
+                </div>
+
+                <span class="hydro-goal-subtitle" id="metaSubtitle">de 2,5 litros</span>
+              </div>
+
+              <div class="hydro-remaining-box">
+                <span class="hydro-remaining-label">Falta</span>
+                <span class="hydro-remaining-value" id="remainingDisplay">2,5 L</span>
+                <span class="hydro-remaining-caption">para concluir sua meta!</span>
+              </div>
+            </div>
+
+            <!-- Gráfico Circular Central -->
+            <div class="hydro-circle-col">
+              <div class="hydro-circle-wrap">
+                <svg class="hydro-circle-svg" viewBox="0 0 120 120">
+                  <circle cx="60" cy="60" r="50" fill="none" stroke="#E2E8F0" stroke-width="10"/>
+                  <circle id="progressCircle" cx="60" cy="60" r="50" fill="none" stroke="#2563EB" stroke-width="10" stroke-dasharray="314" stroke-dashoffset="314" stroke-linecap="round" transform="rotate(-90 60 60)"/>
+                </svg>
+                <span class="hydro-circle-icon">
+                  <svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/></svg>
+                </span>
+                <span class="hydro-circle-current" id="currentDisplay">0 ml</span>
+                <span class="hydro-circle-goal">de <span id="goalDisplay">2,5 L</span></span>
+                <span class="hydro-circle-percent" id="percentDisplay">0%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Histórico de Consumo por Horário -->
+        <div class="hydro-history-section">
+          <h2 class="hydro-history-title">Seu consumo por horário</h2>
+          <div id="historyContainer" class="hydro-history-container">
+            <p class="hydro-history-empty">Nenhum registro hoje ainda.</p>
+          </div>
+        </div>
+
+        <!-- Botão de Ação -->
+        <button id="openModalBtn" class="hydro-add-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+          Adicionar água
+        </button>
+
+      </div>
+
+      <!-- MODAL DE ADICIONAR ÁGUA -->
+      <div id="addWaterModal" class="hydro-modal-overlay">
+        <div class="hydro-modal-content">
+          <div class="hydro-modal-header">
+            <h3 class="hydro-modal-title">Adicionar consumo</h3>
+            <button id="closeModalBtn" class="hydro-modal-close">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="M6 6l12 12"/></svg>
+            </button>
+          </div>
+
+          <div class="hydro-quick-grid">
+            <button onclick="addWater(250)" class="hydro-quick-btn"><span>+ 250 ml</span></button>
+            <button onclick="addWater(500)" class="hydro-quick-btn"><span>+ 500 ml</span></button>
+          </div>
+
+          <div class="hydro-custom-section">
+            <label class="hydro-custom-label">Ou digite a quantidade (ml):</label>
+            <div class="hydro-custom-row">
+              <input type="number" id="customAmountInput" placeholder="Ex: 300" min="1" class="hydro-custom-input">
+              <button onclick="addCustomWater()" class="hydro-custom-btn">Adicionar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Painel: Cardápio -->
+    <section class="panel" id="panel-cardapio">
+      <div class="container">
+        <div class="header">
+          <div>
+            <h1>Cardápio</h1>
+            <p>Planeje suas refeições da semana</p>
+          </div>
+          <button class="app-btn-add" onclick="abrirModalPrato()">+ Novo prato</button>
+        </div>
+
+        <div class="calendar-nav">
+          <span onclick="mudarSemana(-1)">&lt;</span>
+          <div class="days-container" id="daysContainer">
+            <!-- Dias gerados dinamicamente via JavaScript (Segunda a Domingo) -->
+          </div>
+          <span onclick="mudarSemana(1)">&gt;</span>
+        </div>
+
+        <div id="lista-refeicoes">
+          <!-- Café da Manhã -->
+          <div class="meal-section" data-refeicao="Café da manhã">
+            <div class="meal-header">
+              <div class="icon-circle" style="background: #fff3e0;">☕</div>
+              <span>Café da manhã</span>
+              <span class="meal-time">07:00</span>
+            </div>
+            <div id="cards-Café da manhã"></div>
+            <button class="btn-add-meal" onclick="abrirModalSelecao('Café da manhã')">+ Escolher prato</button>
+          </div>
+
+          <!-- Almoço -->
+          <div class="meal-section" data-refeicao="Almoço">
+            <div class="meal-header">
+              <div class="icon-circle" style="background: #e8f5e9;">🍲</div>
+              <span>Almoço</span>
+              <span class="meal-time">12:30</span>
+            </div>
+            <div id="cards-Almoço"></div>
+            <button class="btn-add-meal" onclick="abrirModalSelecao('Almoço')">+ Escolher prato</button>
+          </div>
+
+          <!-- Pré-treino -->
+          <div class="meal-section" data-refeicao="Pré-treino">
+            <div class="meal-header">
+              <div class="icon-circle" style="background: #ede7f6;">⚡</div>
+              <span>Pré-treino</span>
+              <span class="meal-time">16:00</span>
+            </div>
+            <div id="cards-Pré-treino"></div>
+            <button class="btn-add-meal" onclick="abrirModalSelecao('Pré-treino')">+ Escolher prato</button>
+          </div>
+
+          <!-- Pós-treino -->
+          <div class="meal-section" data-refeicao="Pós-treino">
+            <div class="meal-header">
+              <div class="icon-circle" style="background: #e1f5fe;">➕</div>
+              <span>Pós-treino</span>
+              <span class="meal-time">18:00</span>
+            </div>
+            <div id="cards-Pós-treino"></div>
+            <button class="btn-add-meal" onclick="abrirModalSelecao('Pós-treino')">+ Escolher prato</button>
+          </div>
+
+          <!-- Jantar -->
+          <div class="meal-section" data-refeicao="Jantar">
+            <div class="meal-header">
+              <div class="icon-circle" style="background: #e8f5e9;">🌙</div>
+              <span>Jantar</span>
+              <span class="meal-time">20:00</span>
+            </div>
+            <div id="cards-Jantar"></div>
+            <button class="btn-add-meal" onclick="abrirModalSelecao('Jantar')">+ Escolher prato</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Cadastro de Novo Prato (Banco de Pratos) -->
+      <div class="modal-overlay" id="modalNovoPrato">
+        <div class="modal">
+          <h2>Cadastrar Novo Prato</h2>
+          <div class="form-group">
+            <label for="inputNomePrato">Nome do Prato</label>
+            <input type="text" id="inputNomePrato" placeholder="Ex: Pão e mamão">
+          </div>
+          <div class="form-group">
+            <label for="inputItensPrato">Itens do Prato (Ingredientes)</label>
+            <textarea id="inputItensPrato" rows="3" placeholder="Ex: 3 ovos, 1/2 mamão, 1 xícara de café"></textarea>
+          </div>
+          <div class="form-group">
+            <label>Permitido para qual(is) refeição(ões)?</label>
+            <div class="checkbox-group">
+              <label class="checkbox-label"><input type="checkbox" name="novoRefeicao" value="Café da manhã"> Café da manhã</label>
+              <label class="checkbox-label"><input type="checkbox" name="novoRefeicao" value="Almoço"> Almoço</label>
+              <label class="checkbox-label"><input type="checkbox" name="novoRefeicao" value="Pré-treino"> Pré-treino</label>
+              <label class="checkbox-label"><input type="checkbox" name="novoRefeicao" value="Pós-treino"> Pós-treino</label>
+              <label class="checkbox-label"><input type="checkbox" name="novoRefeicao" value="Jantar"> Jantar</label>
+            </div>
+          </div>
+          <div class="modal-buttons">
+            <button class="btn-cancelar" onclick="fecharModalPrato()">Cancelar</button>
+            <button class="btn-salvar" onclick="salvarNovoPrato()">Salvar</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Seleção de Prato para o Dia -->
+      <div class="modal-overlay" id="modalSelecao">
+        <div class="modal">
+          <h2 id="tituloModalSelecao">Escolher Prato</h2>
+          <div class="lista-selecao-pratos" id="listaSelecaoPratos">
+            <!-- Pratos cadastrados aparecerão aqui dinamicamente -->
+          </div>
+          <div class="modal-buttons">
+            <button class="btn-cancelar" onclick="fecharModalSelecao()">Fechar</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Elemento Toast para Mensagens -->
+      <div id="toast" class="toast">Mensagem aqui</div>
+    </section>
+
+    <!-- Painel: Receitas -->
+    <section class="panel" id="panel-receitas">
+      <div class="r-phone">
+
+        <header>
+          <div>
+            <h1>Receitas</h1>
+            <p class="r-subtitle">Suas receitas favoritas</p>
+          </div>
+          <button class="app-btn-add" id="receitaOpenModalBtn">
+            <span style="font-size:16px;line-height:1;">+</span> Nova receita
+          </button>
+        </header>
+
+        <nav class="r-tabs" id="rTabs">
+          <button class="r-tab active" data-filter="Café da manhã">Café da manhã</button>
+          <button class="r-tab" data-filter="Almoço/Jantar">Almoço/Jantar</button>
+          <button class="r-tab" data-filter="Pós/Pré Treino">Pós/Pré Treino</button>
+        </nav>
+
+        <main id="rList"></main>
+
+        <p class="r-empty" id="rEmpty">Nenhuma receita nessa categoria ainda.</p>
+
+      </div>
+
+      <!-- Modal: Nova receita -->
+      <div class="r-overlay" id="rOverlay">
+        <div class="r-modal">
+          <div class="r-modal-head">
+            <h2>Nova receita</h2>
+            <button class="r-close-btn" id="receitaCloseModalBtn">✕</button>
+          </div>
+
+          <form id="recipeForm">
+            <div class="r-photo-picker-wrap">
+              <label class="r-photo-picker" id="createPhotoPicker">
+                <div class="r-thumb r-cafe" id="createThumbPreview">🍳</div>
+                <span class="r-cam-badge">📷</span>
+                <input type="file" accept="image/*" id="createFotoInput" hidden>
+              </label>
+              <div class="r-hint">Toque para adicionar uma foto (opcional)</div>
+            </div>
+
+            <div class="r-field">
+              <label for="titulo">Título da receita</label>
+              <input type="text" id="titulo" placeholder="Ex: Panqueca de banana" />
+              <div class="r-error" id="erroTitulo">Digite um título para a receita.</div>
+            </div>
+
+            <div class="r-field">
+              <label for="ingredientes">Ingredientes</label>
+              <textarea id="ingredientes" placeholder="Ex: 2 bananas, 1 xícara de aveia, 1 ovo, canela a gosto"></textarea>
+              <div class="r-hint">Separe os ingredientes por vírgula ou quebre em linhas.</div>
+              <div class="r-error" id="erroIngredientes">Adicione ao menos um ingrediente.</div>
+            </div>
+
+            <div class="r-field">
+              <label for="linkReceita">Link da receita (opcional)</label>
+              <input type="url" id="linkReceita" placeholder="Ex: https://site.com/receita" />
+              <div class="r-hint">Cole o link do site ou vídeo da receita.</div>
+            </div>
+
+            <div class="r-field">
+              <label>Refeição</label>
+              <div class="r-meal-options" id="mealOptions">
+                <button type="button" class="r-meal-chip" data-value="Café da manhã">Café da manhã</button>
+                <button type="button" class="r-meal-chip" data-value="Almoço/Jantar">Almoço/Jantar</button>
+                <button type="button" class="r-meal-chip" data-value="Pós/Pré Treino">Pós/Pré Treino</button>
+              </div>
+              <div class="r-error" id="erroRefeicao">Escolha uma refeição.</div>
+            </div>
+
+            <button type="submit" class="r-save-btn">Salvar receita</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Modal: Ver / editar receita -->
+      <div class="r-overlay r-overlay-center" id="viewOverlay">
+        <div class="r-modal">
+
+          <!-- Modo leitura -->
+          <div id="viewReadMode">
+            <div class="r-view-head">
+              <div class="r-view-thumb" id="viewThumb"></div>
+              <div class="r-view-title-wrap">
+                <h2 id="viewTitulo"></h2>
+                <span class="r-tag" id="viewTag"></span>
+              </div>
+              <div class="r-view-actions">
+                <button class="r-close-btn" id="editViewBtn" title="Editar">✎</button>
+                <button class="r-close-btn" id="closeViewBtn" title="Fechar">✕</button>
+              </div>
+            </div>
+
+            <p class="r-view-section-title">Ingredientes</p>
+            <ul class="r-ingredient-list" id="viewIngredientes"></ul>
+
+            <button type="button" class="r-recipe-link" id="viewLinkBtn">🔗 Abrir receita original</button>
+          </div>
+
+          <!-- Modo edição -->
+          <div id="viewEditMode" style="display:none;">
+            <div class="r-modal-head">
+              <h2>Editar receita</h2>
+              <button class="r-close-btn" id="closeEditBtn">✕</button>
+            </div>
+
+            <div class="r-photo-picker-wrap">
+              <label class="r-photo-picker" id="editPhotoPicker">
+                <div class="r-thumb" id="editThumbPreview"></div>
+                <span class="r-cam-badge">📷</span>
+                <input type="file" accept="image/*" id="editFotoInput" hidden>
+              </label>
+              <div class="r-hint">Toque no ícone para trocar a foto</div>
+            </div>
+
+            <div class="r-field">
+              <label for="editTitulo">Título da receita</label>
+              <input type="text" id="editTitulo" />
+              <div class="r-error" id="editErroTitulo">Digite um título para a receita.</div>
+            </div>
+
+            <div class="r-field">
+              <label for="editIngredientes">Ingredientes</label>
+              <textarea id="editIngredientes"></textarea>
+              <div class="r-hint">Separe os ingredientes por vírgula ou quebre em linhas.</div>
+              <div class="r-error" id="editErroIngredientes">Adicione ao menos um ingrediente.</div>
+            </div>
+
+            <div class="r-field">
+              <label for="editLinkReceita">Link da receita (opcional)</label>
+              <input type="url" id="editLinkReceita" placeholder="Ex: https://site.com/receita" />
+              <div class="r-hint">Cole o link do site ou vídeo da receita.</div>
+            </div>
+
+            <div class="r-field">
+              <label>Refeição</label>
+              <div class="r-meal-options" id="editMealOptions">
+                <button type="button" class="r-meal-chip" data-value="Café da manhã">Café da manhã</button>
+                <button type="button" class="r-meal-chip" data-value="Almoço/Jantar">Almoço/Jantar</button>
+                <button type="button" class="r-meal-chip" data-value="Pós/Pré Treino">Pós/Pré Treino</button>
+              </div>
+              <div class="r-error" id="editErroRefeicao">Escolha uma refeição.</div>
+            </div>
+
+            <button type="button" class="r-save-btn" id="saveEditBtn">Salvar alterações</button>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- Painel: Lista de compras -->
+    <section class="panel" id="panel-lista">
+      <div class="container">
+        <div class="header">
+            <div>
+                <h1>Lista de Compras</h1>
+                <p>Organize suas compras</p>
+            </div>
+            <button class="app-btn-add" onclick="openAddModal()">+ Adicionar item</button>
+        </div>
+
+        <div class="item-list" id="itemList">
+            <div class="empty-state" id="emptyState">Sua lista está vazia. Adicione itens!</div>
+        </div>
+
+        <div class="summary-box">
+            <div class="summary-col">
+                <div class="summary-label">Itens</div>
+                <div class="summary-value" id="totalItemsCount">0</div>
+            </div>
+            <div class="summary-col">
+                <div class="summary-label">Total</div>
+                <div class="summary-value" id="totalPriceSum">R$ 0,00</div>
+            </div>
+        </div>
+      </div>
+
+      <div class="modal-overlay" id="addModal">
+          <div class="modal-card">
+              <h2>Adicionar Novo Item</h2>
+              <div class="form-group">
+                  <label>Nome do item</label>
+                  <input type="text" id="inputName" placeholder="Ex: Arroz">
+              </div>
+              <div class="form-group">
+                  <label>Quantidade (apenas números)</label>
+                  <input type="number" id="inputQty" value="1" min="1" inputmode="numeric">
+              </div>
+              <div class="modal-buttons">
+                  <button class="btn-cancel" onclick="closeAddModal()">Cancelar</button>
+                  <button class="btn-save" onclick="addItem()">Adicionar</button>
+              </div>
+          </div>
+      </div>
+
+      <div class="modal-overlay" id="editModal">
+          <div class="modal-card">
+              <h2>Editar Item</h2>
+              <div class="form-group">
+                  <label>Nome do item</label>
+                  <input type="text" id="editInputName">
+              </div>
+              <div class="form-group">
+                  <label>Quantidade (apenas números)</label>
+                  <input type="number" id="editInputQty" min="1" inputmode="numeric">
+              </div>
+              <div class="modal-buttons">
+                  <button class="btn-cancel" onclick="closeEditModal()">Cancelar</button>
+                  <button class="btn-save" onclick="saveEditItem()">Salvar</button>
+              </div>
+          </div>
+      </div>
+
+      <div class="modal-overlay" id="priceModal">
+          <div class="modal-card">
+              <h2 id="priceModalTitle">Editar Valor</h2>
+              <div class="form-group">
+                  <label>Valor Unitário (R$)</label>
+                  <input type="number" id="inputPrice" step="0.01" inputmode="decimal" placeholder="0.00">
+              </div>
+              <div class="modal-buttons">
+                  <button class="btn-cancel" onclick="closePriceModal()">Cancelar</button>
+                  <button class="btn-save" onclick="savePrice()">Salvar</button>
+              </div>
+          </div>
+      </div>
+    </section>
+
+  </div>
+
+  <nav class="bottom-nav">
+    <button class="nav-item active" data-tab="refeicoes">
+      <svg viewBox="0 0 24 24"><path d="M7 2v7"/><path d="M11 2v7"/><path d="M7 2c0 3 -1 4 -1 7s1 4 2 4v9"/><path d="M11 2c0 3 1 4 1 7s-1 4 -2 4"/><path d="M17 2c-1.5 0-3 1.5-3 5s1 5 1 7v8"/></svg>
+      <span>Refeições</span>
+    </button>
+
+    <button class="nav-item" data-tab="hidratacao">
+      <svg viewBox="0 0 24 24"><path d="M12 2c3.5 4.5 6 8 6 11.5A6 6 0 0 1 6 13.5C6 10 8.5 6.5 12 2Z"/></svg>
+      <span>Hidratação</span>
+    </button>
+
+    <button class="nav-item" data-tab="cardapio">
+      <svg viewBox="0 0 24 24"><path d="M4 18h16"/><path d="M6 18a6 6 0 0 1 12 0"/><path d="M12 5v3"/><circle cx="12" cy="4" r="1"/></svg>
+      <span>Cardápio</span>
+    </button>
+
+    <button class="nav-item" data-tab="receitas">
+      <svg viewBox="0 0 24 24"><path d="M6 21h12"/><path d="M7 21c0-5 -2-6 -2-10a7 7 0 0 1 14 0c0 4 -2 5 -2 10"/><path d="M9 11h6"/></svg>
+      <span>Receitas</span>
+    </button>
+
+    <button class="nav-item" data-tab="lista">
+      <svg viewBox="0 0 24 24"><path d="M4 9h16l-1.5 11a1 1 0 0 1-1 1H6.5a1 1 0 0 1-1-1L4 9Z"/><path d="M9 9V7a3 3 0 0 1 6 0v2"/><path d="M9 13v4"/><path d="M12 13v4"/><path d="M15 13v4"/></svg>
+      <span>Lista de compras</span>
+    </button>
+  </nav>
+</div>
+
+<script>
+  // Navegação entre abas
+  document.querySelectorAll('.nav-item').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.querySelector('.nav-item.active').classList.remove('active');
+      btn.classList.add('active');
+
+      document.querySelector('.panel.active').classList.remove('active');
+      document.getElementById('panel-' + btn.dataset.tab).classList.add('active');
+    });
+  });
+
+  // ---------------- Dados compartilhados do plano alimentar ----------------
+  let bancoDePratos = [
+    { nome: "Aveia com banana", itens: "Aveia, banana, chia, mel e canela", refeicoes: ["Café da manhã"] },
+    { nome: "Pão e mamão", itens: "3 ovos, 1/2 mamão, 1 xícara de café", refeicoes: ["Café da manhã"] },
+    { nome: "Arroz, feijão, bife e salada", itens: "Arroz integral, feijão, bife grelhado e salada de tomate", refeicoes: ["Almoço"] },
+    { nome: "Banana com pasta de amendoim", itens: "Banana, pasta de amendoim e whey protein", refeicoes: ["Pré-treino"] },
+    { nome: "Whey protein com batata doce", itens: "Whey protein e batata doce cozida", refeicoes: ["Pós-treino"] },
+    { nome: "Frango com legumes e quinoa", itens: "Frango grelhado, legumes cozidos e quinoa", refeicoes: ["Jantar"] }
+  ];
+
+  // Armazena os cardápios de cada dia (chave = data string "YYYY-MM-DD", valor = { "Café da manhã": [...], "Almoço": [...] })
+  let cardapiosPorDia = {};
+
+  // Retorna a chave formatada para o dia (YYYY-MM-DD)
+  function formatarChaveData(date) {
+    const ano = date.getFullYear();
+    const mes = String(date.getMonth() + 1).padStart(2, '0');
+    const dia = String(date.getDate()).padStart(2, '0');
+    return `${ano}-${mes}-${dia}`;
+  }
+
+  // Mapeia cada card do painel Refeições para a categoria usada no painel Cardápio
+  const CATEGORIAS_REFEICAO = [
+    { chave: 'Café da manhã', classe: 'm-cafe' },
+    { chave: 'Almoço', classe: 'm-almoco' },
+    { chave: 'Pré-treino', classe: 'm-pre' },
+    { chave: 'Pós-treino', classe: 'm-pos' },
+    { chave: 'Jantar', classe: 'm-jantar' }
+  ];
+
+  // Data atualmente exibida no painel Refeições (permite navegar entre dias)
+  let mDataSelecionada = new Date();
+
+  // Preenche os cards do painel Refeições com os pratos cadastrados no dia selecionado
+  function renderizarPainelRefeicoes(){
+    const chaveHoje = formatarChaveData(mDataSelecionada);
+    CATEGORIAS_REFEICAO.forEach(cat => {
+      const card = document.querySelector('#panel-refeicoes .m-meal-card.' + cat.classe);
+      if (!card) return;
+      const lista = card.querySelector('.m-items');
+      lista.innerHTML = '';
+      const pratosDoDia = (cardapiosPorDia[chaveHoje] && cardapiosPorDia[chaveHoje][cat.chave]) || [];
+
+      if (pratosDoDia.length === 0){
+        const li = document.createElement('li');
+        li.className = 'm-empty-item';
+        li.textContent = 'Nenhum prato adicionado. Toque em "Cardápio" para adicionar.';
+        lista.appendChild(li);
+        return;
+      }
+
+      pratosDoDia.forEach(prato => {
+        const itensDoPrato = String(prato.itens || '').split(/,\s*/).filter(Boolean);
+        itensDoPrato.forEach(texto => {
+          const li = document.createElement('li');
+          li.textContent = texto;
+          lista.appendChild(li);
+        });
+      });
+    });
+  }
+
+  // Formata a data de hoje por extenso em português (ex: "Sábado, 1 de agosto de 2026")
+  function formatarDataPorExtenso(date){
+    let texto = date.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    return texto.charAt(0).toUpperCase() + texto.slice(1);
+  }
+
+  // ---------------- Lógica do painel de Refeições ----------------
+  (function(){
+    const mOverlay = document.getElementById('mOverlay');
+    const mAddMealBtn = document.getElementById('mAddMealBtn');
+    const mCancelBtn = document.getElementById('mCancelBtn');
+    const mSaveBtn = document.getElementById('mSaveBtn');
+    const mTargetSelect = document.getElementById('mTargetSelect');
+    const mNomePrato = document.getElementById('mNomePrato');
+    const mIngredientList = document.getElementById('mIngredientList');
+    const mAddIngBtn = document.getElementById('mAddIngBtn');
+    const mDateBar = document.getElementById('mDateBar');
+    const mDateLabel = document.getElementById('mDateLabel');
+
+    function mOpenModal(){ mOverlay.classList.add('show'); }
+    function mCloseModal(){
+      mOverlay.classList.remove('show');
+      mIngredientList.innerHTML = `<div class="m-ingredient-row">
+          <input type="text" class="m-ing-input" placeholder="Ex: 1 fatia de pão integral">
+          <button type="button" class="m-remove-ing">✕</button>
+        </div>`;
+      mNomePrato.value = '';
+      mTargetSelect.value = 'm-cafe';
+    }
+
+    if (mAddMealBtn) mAddMealBtn.addEventListener('click', mOpenModal);
+    mCancelBtn.addEventListener('click', mCloseModal);
+    mOverlay.addEventListener('click', (e)=>{ if(e.target === mOverlay) mCloseModal(); });
+
+    mAddIngBtn.addEventListener('click', ()=>{
+      const row = document.createElement('div');
+      row.className = 'm-ingredient-row';
+      row.innerHTML = `<input type="text" class="m-ing-input" placeholder="Ex: 1 copo de suco natural">
+        <button type="button" class="m-remove-ing">✕</button>`;
+      mIngredientList.appendChild(row);
+    });
+
+    mIngredientList.addEventListener('click', (e)=>{
+      if(e.target.classList.contains('m-remove-ing')){
+        const rows = mIngredientList.querySelectorAll('.m-ingredient-row');
+        if(rows.length > 1) e.target.closest('.m-ingredient-row').remove();
+      }
+    });
+
+    function mAttachCardHandlers(card){
+      card.addEventListener('click', ()=> card.classList.toggle('open'));
+    }
+
+    mSaveBtn.addEventListener('click', ()=>{
+      const itens = Array.from(mIngredientList.querySelectorAll('.m-ing-input'))
+        .map(i => i.value.trim())
+        .filter(Boolean);
+
+      if(itens.length === 0){
+        alert('Adicione pelo menos um item para a refeição.');
+        return;
+      }
+
+      const cat = CATEGORIAS_REFEICAO.find(c => c.classe === mTargetSelect.value);
+      if(!cat) return;
+
+      const nome = mNomePrato.value.trim() || itens[0];
+      const chaveHoje = formatarChaveData(mDataSelecionada);
+
+      if (!cardapiosPorDia[chaveHoje]) cardapiosPorDia[chaveHoje] = {};
+      if (!cardapiosPorDia[chaveHoje][cat.chave]) cardapiosPorDia[chaveHoje][cat.chave] = [];
+      cardapiosPorDia[chaveHoje][cat.chave].push({ nome, itens: itens.join(', ') });
+
+      const card = document.querySelector('#panel-refeicoes .m-meal-card.' + cat.classe);
+      if (card) card.classList.add('open');
+
+      renderizarPainelRefeicoes();
+      if (typeof atualizarCardapioSeForHoje === 'function') atualizarCardapioSeForHoje();
+
+      mCloseModal();
+    });
+
+    // ---- Navegação de data (dia anterior / próximo dia) ----
+    const mDatePrev = document.getElementById('mDatePrev');
+    const mDateNext = document.getElementById('mDateNext');
+    const mDateCenter = document.getElementById('mDateCenter');
+
+    function mAtualizarDataLabel(){
+      if (mDateLabel) mDateLabel.textContent = formatarDataPorExtenso(mDataSelecionada);
+    }
+
+    if (mDatePrev){
+      mDatePrev.addEventListener('click', ()=>{
+        mDataSelecionada.setDate(mDataSelecionada.getDate() - 1);
+        mAtualizarDataLabel();
+        renderizarPainelRefeicoes();
+      });
+    }
+
+    if (mDateNext){
+      mDateNext.addEventListener('click', ()=>{
+        mDataSelecionada.setDate(mDataSelecionada.getDate() + 1);
+        mAtualizarDataLabel();
+        renderizarPainelRefeicoes();
+      });
+    }
+
+    if (mDateCenter){
+      mDateCenter.addEventListener('click', ()=>{
+        mDataSelecionada = new Date();
+        mAtualizarDataLabel();
+        renderizarPainelRefeicoes();
+      });
+    }
+
+    mAtualizarDataLabel();
+
+    // ---- Edição do nome do usuário ----
+    const mNameEditBtn = document.getElementById('mNameEditBtn');
+    const mGreetingName = document.getElementById('mGreetingName');
+    const mNameInput = document.getElementById('mNameInput');
+
+    function mExtrairNome(){
+      const texto = mGreetingName.textContent.trim();
+      return texto.replace(/^Olá,\s*/i, '').replace(/!$/, '').trim();
+    }
+
+    function mIniciarEdicaoNome(){
+      mNameInput.value = mExtrairNome();
+      mNameEditBtn.style.display = 'none';
+      mNameInput.style.display = 'block';
+      mNameInput.focus();
+      mNameInput.select();
+    }
+
+    function mSalvarNome(){
+      const novoNome = mNameInput.value.trim();
+      if (novoNome){
+        mGreetingName.textContent = `Olá, ${novoNome}!`;
+      }
+      mNameInput.style.display = 'none';
+      mNameEditBtn.style.display = '';
+    }
+
+    if (mNameEditBtn){
+      mNameEditBtn.addEventListener('click', mIniciarEdicaoNome);
+    }
+    if (mNameInput){
+      mNameInput.addEventListener('blur', mSalvarNome);
+      mNameInput.addEventListener('keydown', (e)=>{
+        if (e.key === 'Enter'){ e.preventDefault(); mNameInput.blur(); }
+        if (e.key === 'Escape'){ mNameInput.value = mExtrairNome(); mNameInput.blur(); }
+      });
+    }
+
+    document.querySelectorAll('#panel-refeicoes .m-meal-card[data-meal]').forEach(mAttachCardHandlers);
+    renderizarPainelRefeicoes();
+  })();
+
+  // ---------------- Lógica do painel de Cardápio ----------------
+  let atualizarCardapioSeForHoje = function(){};
+  (function(){
+    let dataAtualSelecionada = new Date(); // Data base ativa
+    let offsetSemana = 0; // Deslocamento de semanas
+
+    function mostrarToastCardapio(mensagem) {
+      const toast = document.getElementById('toast');
+      toast.innerText = mensagem;
+      toast.className = "toast show";
+      setTimeout(() => {
+        toast.className = toast.className.replace("show", "");
+      }, 3000);
+    }
+
+    // Renderiza o cabeçalho de Segunda a Domingo da semana correspondente
+    function renderizarCalendario() {
+      const container = document.getElementById('daysContainer');
+      container.innerHTML = '';
+
+      // Copia a data atual e ajusta para a Segunda-feira da semana
+      let curr = new Date(dataAtualSelecionada);
+      curr.setDate(curr.getDate() + (offsetSemana * 7));
+
+      const diaSemana = curr.getDay(); // 0 = Domingo, 1 = Segunda, ...
+      const diffParaSegunda = curr.getDate() - diaSemana + (diaSemana === 0 ? -6 : 1);
+
+      let segunda = new Date(curr.setDate(diffParaSegunda));
+
+      const diasNomes = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
+
+      for (let i = 0; i < 7; i++) {
+        let diaLoop = new Date(segunda);
+        diaLoop.setDate(segunda.getDate() + i);
+
+        const chaveDia = formatarChaveData(diaLoop);
+        const isAtivo = chaveDia === formatarChaveData(dataAtualSelecionada);
+
+        const itemDiv = document.createElement('div');
+        itemDiv.className = `day-item ${isAtivo ? 'active' : ''}`;
+        itemDiv.innerHTML = `
+          <span>${diasNomes[i]}</span>
+          <span class="number">${String(diaLoop.getDate()).padStart(2, '0')}</span>
+        `;
+
+        itemDiv.onclick = () => {
+          dataAtualSelecionada = new Date(diaLoop);
+          renderizarCalendario();
+          carregarCardapioDoDia();
+        };
+
+        container.appendChild(itemDiv);
+      }
+    }
+
+    window.mudarSemana = function(direcao) {
+      offsetSemana += direcao;
+      renderizarCalendario();
+    };
+
+    function carregarCardapioDoDia() {
+      const chaveDia = formatarChaveData(dataAtualSelecionada);
+      const refeicoes = ["Café da manhã", "Almoço", "Pré-treino", "Pós-treino", "Jantar"];
+
+      refeicoes.forEach(refeicao => {
+        const containerCards = document.getElementById(`cards-${refeicao}`);
+        containerCards.innerHTML = '';
+
+        if (cardapiosPorDia[chaveDia] && cardapiosPorDia[chaveDia][refeicao]) {
+          cardapiosPorDia[chaveDia][refeicao].forEach((prato, index) => {
+            const novoCard = document.createElement('div');
+            novoCard.className = 'meal-card';
+            novoCard.innerHTML = `
+              <div class="meal-card-content">
+                <h3>${prato.nome}</h3>
+                <p>${prato.itens}</p>
+              </div>
+              <div class="meal-options" title="Remover prato" onclick="removerPratoDoDia('${refeicao}', ${index})">🗑️</div>
+            `;
+            containerCards.appendChild(novoCard);
+          });
+        }
+      });
+    }
+
+    window.abrirModalPrato = function() {
+      document.getElementById('modalNovoPrato').style.display = 'flex';
+    };
+
+    window.fecharModalPrato = function() {
+      document.getElementById('modalNovoPrato').style.display = 'none';
+      document.getElementById('inputNomePrato').value = '';
+      document.getElementById('inputItensPrato').value = '';
+      document.querySelectorAll('input[name="novoRefeicao"]').forEach(cb => cb.checked = false);
+    };
+
+    window.salvarNovoPrato = function() {
+      const nome = document.getElementById('inputNomePrato').value.trim();
+      const itens = document.getElementById('inputItensPrato').value.trim();
+      const checkboxes = document.querySelectorAll('input[name="novoRefeicao"]:checked');
+
+      if (!nome || !itens) {
+        mostrarToastCardapio('Preencha o nome e os itens do prato.');
+        return;
+      }
+
+      if (checkboxes.length === 0) {
+        mostrarToastCardapio('Selecione pelo menos uma refeição para este prato.');
+        return;
+      }
+
+      const refeicoes = Array.from(checkboxes).map(cb => cb.value);
+
+      bancoDePratos.push({ nome, itens, refeicoes });
+      window.fecharModalPrato();
+      mostrarToastCardapio('Prato cadastrado com sucesso!');
+    };
+
+    let refeicaoAtualSelecionada = '';
+
+    window.abrirModalSelecao = function(refeicao) {
+      refeicaoAtualSelecionada = refeicao;
+      document.getElementById('tituloModalSelecao').innerText = `Escolher para: ${refeicao}`;
+
+      const listaContainer = document.getElementById('listaSelecaoPratos');
+      listaContainer.innerHTML = '';
+
+      const pratosCompativeis = bancoDePratos.filter(p =>
+        p.refeicoes.some(r => r.trim().toLowerCase() === refeicao.trim().toLowerCase())
+      );
+
+      if (pratosCompativeis.length === 0) {
+        listaContainer.innerHTML = '<p style="text-align:center; color:#666; font-size:13px; padding: 20px;">Nenhum prato cadastrado para esta refeição. Clique em "+ Novo prato" para cadastrar.</p>';
+      } else {
+        pratosCompativeis.forEach(prato => {
+          const itemDiv = document.createElement('div');
+          itemDiv.className = 'item-selecao-prato';
+          itemDiv.innerHTML = `
+            <h4>${prato.nome}</h4>
+            <p>${prato.itens}</p>
+          `;
+          itemDiv.onclick = () => window.adicionarPratoNoDia(refeicao, prato);
+          listaContainer.appendChild(itemDiv);
+        });
+      }
+
+      document.getElementById('modalSelecao').style.display = 'flex';
+    };
+
+    window.fecharModalSelecao = function() {
+      document.getElementById('modalSelecao').style.display = 'none';
+    };
+
+    window.adicionarPratoNoDia = function(refeicao, prato) {
+      const chaveDia = formatarChaveData(dataAtualSelecionada);
+
+      if (!cardapiosPorDia[chaveDia]) {
+        cardapiosPorDia[chaveDia] = {};
+      }
+      if (!cardapiosPorDia[chaveDia][refeicao]) {
+        cardapiosPorDia[chaveDia][refeicao] = [];
+      }
+
+      cardapiosPorDia[chaveDia][refeicao].push(prato);
+      carregarCardapioDoDia();
+      window.fecharModalSelecao();
+      mostrarToastCardapio('Prato adicionado ao dia!');
+      if (chaveDia === formatarChaveData(new Date())) renderizarPainelRefeicoes();
+    };
+
+    window.removerPratoDoDia = function(refeicao, index) {
+      const chaveDia = formatarChaveData(dataAtualSelecionada);
+      if (cardapiosPorDia[chaveDia] && cardapiosPorDia[chaveDia][refeicao]) {
+        cardapiosPorDia[chaveDia][refeicao].splice(index, 1);
+        carregarCardapioDoDia();
+        mostrarToastCardapio('Prato removido do dia!');
+        if (chaveDia === formatarChaveData(new Date())) renderizarPainelRefeicoes();
+      }
+    };
+
+    // Permite que o painel Refeições avise o Cardápio quando o dia selecionado for hoje
+    atualizarCardapioSeForHoje = function(){
+      if (formatarChaveData(dataAtualSelecionada) === formatarChaveData(new Date())) {
+        carregarCardapioDoDia();
+      }
+    };
+
+    // Inicializa o painel de cardápio (o painel já está no DOM neste ponto)
+    renderizarCalendario();
+    carregarCardapioDoDia();
+  })();
+
+
+  // ---------------- Lógica da Lista de Compras ----------------
+  let items = [];
+  let editingPriceId = null;
+  let editingItemId = null;
+
+  function formatCurrency(value) {
+      return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  }
+
+  function openAddModal() {
+      document.getElementById('inputName').value = '';
+      document.getElementById('inputQty').value = '1';
+      document.getElementById('addModal').style.display = 'flex';
+      document.getElementById('inputName').focus();
+  }
+
+  function closeAddModal() {
+      document.getElementById('addModal').style.display = 'none';
+  }
+
+  function addItem() {
+      const name = document.getElementById('inputName').value;
+      const qtyVal = parseInt(document.getElementById('inputQty').value);
+
+      if (!name || name.trim() === "") {
+          alert("Digite o nome do item.");
+          return;
+      }
+
+      const newItem = {
+          id: Date.now(),
+          name: name.trim(),
+          qty: isNaN(qtyVal) || qtyVal < 1 ? 1 : qtyVal,
+          unitPrice: 0.00,
+          checked: false
+      };
+
+      items.push(newItem);
+      closeAddModal();
+      renderList();
+  }
+
+  function openEditModal(id) {
+      const item = items.find(i => i.id === id);
+      if (!item) return;
+
+      editingItemId = id;
+      document.getElementById('editInputName').value = item.name;
+      document.getElementById('editInputQty').value = item.qty;
+      document.getElementById('editModal').style.display = 'flex';
+      document.getElementById('editInputName').focus();
+  }
+
+  function closeEditModal() {
+      document.getElementById('editModal').style.display = 'none';
+      editingItemId = null;
+  }
+
+  function saveEditItem() {
+      if (editingItemId === null) return;
+
+      const item = items.find(i => i.id === editingItemId);
+      if (item) {
+          const name = document.getElementById('editInputName').value;
+          const qtyVal = parseInt(document.getElementById('editInputQty').value);
+
+          if (!name || name.trim() === "") {
+              alert("Digite o nome do item.");
+              return;
+          }
+
+          item.name = name.trim();
+          item.qty = isNaN(qtyVal) || qtyVal < 1 ? 1 : qtyVal;
+      }
+
+      closeEditModal();
+      renderList();
+  }
+
+  function openPriceModal(id) {
+      const item = items.find(i => i.id === id);
+      if (!item) return;
+
+      editingPriceId = id;
+      document.getElementById('priceModalTitle').innerText = `Editar Valor: ${item.name}`;
+      document.getElementById('inputPrice').value = item.unitPrice > 0 ? item.unitPrice : '';
+      document.getElementById('priceModal').style.display = 'flex';
+      document.getElementById('inputPrice').focus();
+  }
+
+  function closePriceModal() {
+      document.getElementById('priceModal').style.display = 'none';
+      editingPriceId = null;
+  }
+
+  function savePrice() {
+      if (editingPriceId === null) return;
+
+      const item = items.find(i => i.id === editingPriceId);
+      if (item) {
+          const priceVal = parseFloat(document.getElementById('inputPrice').value);
+          item.unitPrice = !isNaN(priceVal) && priceVal >= 0 ? priceVal : 0.00;
+      }
+
+      closePriceModal();
+      renderList();
+  }
+
+  function toggleItem(id) {
+      const item = items.find(i => i.id === id);
+      if (item) {
+          item.checked = !item.checked;
+          renderList();
+      }
+  }
+
+  function removeItem(id) {
+      items = items.filter(i => i.id !== id);
+      renderList();
+  }
+
+  function renderList() {
+      const listContainer = document.getElementById('itemList');
+      listContainer.innerHTML = '';
+
+      if (items.length === 0) {
+          listContainer.innerHTML = `<div class="empty-state">Sua lista está vazia. Adicione itens!</div>`;
+      } else {
+          items.forEach(item => {
+              const card = document.createElement('div');
+              card.className = `item-card ${item.checked ? 'checked' : ''}`;
+
+              const totalItemPrice = item.unitPrice * item.qty;
+
+              card.innerHTML = `
+                  <label class="checkbox-container">
+                      <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${item.id})">
+                      <span class="checkmark"></span>
+                  </label>
+                  <div class="item-info">
+                      <div class="item-details" onclick="openEditModal(${item.id})" title="Clique para editar nome ou quantidade">
+                          <span class="item-name">${item.name}</span>
+                          <span class="item-qty">${item.qty}</span>
+                      </div>
+                      <span class="item-price" onclick="openPriceModal(${item.id})" title="Clique para alterar o valor unitário">${formatCurrency(totalItemPrice)}</span>
+                  </div>
+                  <button class="item-menu" onclick="removeItem(${item.id})" title="Remover item">🗑️</button>
+              `;
+              listContainer.appendChild(card);
+          });
+      }
+
+      document.getElementById('totalItemsCount').innerText = items.length;
+      const totalPrice = items.reduce((acc, item) => acc + (item.unitPrice * item.qty), 0);
+      document.getElementById('totalPriceSum').innerText = formatCurrency(totalPrice);
+  }
+
+  renderList();
+
+  // ---------------- Lógica da Hidratação ----------------
+
+  // Inserir data atual formatada automaticamente em português
+  const hidratacaoDateOptions = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
+  const hidratacaoToday = new Date().toLocaleDateString('pt-BR', hidratacaoDateOptions);
+  document.getElementById('currentDateDisplay').textContent = hidratacaoToday;
+
+  // Estado da aplicação
+  let dailyGoal = 2500; // ml
+  let historySlots = []; // Histórico vazio inicialmente
+
+  function formatMl(ml) {
+      if (ml >= 1000) {
+          return (ml / 1000).toFixed(2).replace('.', ',') + ' L';
+      }
+      return ml + ' ml';
+  }
+
+  function updateHidratacaoUI() {
+      let totalConsumed = historySlots.reduce((acc, curr) => acc + curr.amount, 0);
+
+      document.getElementById('currentDisplay').textContent = formatMl(totalConsumed);
+      document.getElementById('goalDisplay').textContent = formatMl(dailyGoal);
+      document.getElementById('metaSubtitle').textContent = `de ${(dailyGoal / 1000).toFixed(1).replace('.', ',')} litros`;
+
+      let percent = Math.min(100, Math.round((totalConsumed / dailyGoal) * 100));
+      document.getElementById('percentDisplay').textContent = percent + '%';
+
+      let remaining = Math.max(0, dailyGoal - totalConsumed);
+      document.getElementById('remainingDisplay').textContent = formatMl(remaining);
+
+      let circumference = 2 * Math.PI * 50;
+      let offset = circumference - (percent / 100) * circumference;
+      document.getElementById('progressCircle').style.strokeDashoffset = Math.max(0, offset);
+
+      let historyContainer = document.getElementById('historyContainer');
+      historyContainer.innerHTML = '';
+
+      if (historySlots.length === 0) {
+          historyContainer.innerHTML = `<p class="hydro-history-empty">Nenhum registro hoje ainda.</p>`;
+          return;
+      }
+
+      historySlots.forEach(slot => {
+          let slotHTML = `
+              <div class="hydro-history-item">
+                  <span class="hydro-history-time">${slot.time}</span>
+                  <div class="hydro-history-bar">
+                      <div class="hydro-history-bar-fill"></div>
+                  </div>
+                  <span class="hydro-history-amount">${slot.amount} ml</span>
+              </div>
+          `;
+          historyContainer.innerHTML += slotHTML;
+      });
+  }
+
+  function addWater(amount) {
+      let now = new Date();
+      let hours = String(now.getHours()).padStart(2, '0');
+      let minutes = String(now.getMinutes()).padStart(2, '0');
+      let currentTime = `${hours}:${minutes}`;
+
+      historySlots.push({ time: currentTime, amount: amount });
+      updateHidratacaoUI();
+      toggleHidratacaoModal(false);
+  }
+
+  function addCustomWater() {
+      let input = document.getElementById('customAmountInput');
+      let value = parseInt(input.value);
+      if (value && value > 0) {
+          addWater(value);
+          input.value = '';
+      } else {
+          alert('Digite uma quantidade válida em ml.');
+      }
+  }
+
+  function toggleHidratacaoModal(open) {
+      const modal = document.getElementById('addWaterModal');
+      if (open) modal.classList.add('open');
+      else modal.classList.remove('open');
+  }
+
+  document.getElementById('openModalBtn').addEventListener('click', () => toggleHidratacaoModal(true));
+  document.getElementById('closeModalBtn').addEventListener('click', () => toggleHidratacaoModal(false));
+
+  // Edição da Meta
+  const viewMetaMode = document.getElementById('viewMetaMode');
+  const editMetaMode = document.getElementById('editMetaMode');
+  const editMetaBtn = document.getElementById('editMetaBtn');
+  const saveMetaBtn = document.getElementById('saveMetaBtn');
+  const editMetaInput = document.getElementById('editMetaInput');
+  const metaAmountSpan = document.getElementById('metaAmount');
+  const metaUnitSpan = document.getElementById('metaUnit');
+
+  editMetaBtn.addEventListener('click', () => {
+      editMetaInput.value = dailyGoal;
+      viewMetaMode.classList.add('hidden');
+      editMetaMode.classList.add('active');
+  });
+
+  saveMetaBtn.addEventListener('click', () => {
+      let newGoal = parseInt(editMetaInput.value);
+      if (newGoal >= 100) {
+          dailyGoal = newGoal;
+          if (dailyGoal >= 1000) {
+              metaAmountSpan.textContent = (dailyGoal / 1000).toFixed(1).replace('.', ',');
+              metaUnitSpan.textContent = 'L';
+          } else {
+              metaAmountSpan.textContent = dailyGoal;
+              metaUnitSpan.textContent = 'ml';
+          }
+          updateHidratacaoUI();
+          viewMetaMode.classList.remove('hidden');
+          editMetaMode.classList.remove('active');
+      } else {
+          alert('A meta mínima é de 100 ml.');
+      }
+  });
+
+  updateHidratacaoUI();
+
+  // ---------------- Lógica das Receitas ----------------
+  const rTabs = document.querySelectorAll('.r-tab');
+  const rList = document.getElementById('rList');
+  const rEmpty = document.getElementById('rEmpty');
+
+  const R_CONFIG = {
+    'Café da manhã': { classe: 'r-cafe', emoji: '🍳' },
+    'Almoço/Jantar': { classe: 'r-almjan', emoji: '🍽️' },
+    'Pós/Pré Treino': { classe: 'r-treino', emoji: '💪' }
+  };
+  const R_CLASSES = ['r-cafe', 'r-almjan', 'r-treino'];
+
+  function setThumbContent(el, refeicao, foto){
+    const cfg = R_CONFIG[refeicao] || { classe: 'r-cafe', emoji: '🍽️' };
+    R_CLASSES.forEach(c => el.classList.remove(c));
+    el.classList.add(cfg.classe);
+    if (foto){
+      el.style.backgroundImage = 'url("' + foto + '")';
+      el.textContent = '';
+    } else {
+      el.style.backgroundImage = '';
+      el.textContent = cfg.emoji;
+    }
+  }
+
+  function resumoIngredientes(texto){
+    const partes = texto.split(/,|\n/).map(p => p.trim()).filter(Boolean);
+    if (partes.length === 0) return '';
+    const preview = partes.slice(0, 3).join(', ');
+    return partes.length > 3 ? preview + '...' : preview + '.';
+  }
+
+  function applyFilter(){
+    const activeTab = document.querySelector('.r-tab.active');
+    const filter = activeTab ? activeTab.dataset.filter : null;
+    const cards = document.querySelectorAll('.r-card');
+    let visible = 0;
+    cards.forEach(card => {
+      const match = card.dataset.cat === filter;
+      card.classList.toggle('show', match);
+      if (match) visible++;
+    });
+    rEmpty.classList.toggle('show', visible === 0);
+  }
+
+  rTabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      rTabs.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      applyFilter();
+    });
+  });
+
+  /* ---------- Modal: Nova receita ---------- */
+  const rOverlay = document.getElementById('rOverlay');
+  const receitaOpenModalBtn = document.getElementById('receitaOpenModalBtn');
+  const receitaCloseModalBtn = document.getElementById('receitaCloseModalBtn');
+  const recipeForm = document.getElementById('recipeForm');
+  const tituloInput = document.getElementById('titulo');
+  const ingredientesInput = document.getElementById('ingredientes');
+  const linkInput = document.getElementById('linkReceita');
+  const mealOptions = document.getElementById('mealOptions');
+  const erroTitulo = document.getElementById('erroTitulo');
+  const erroIngredientes = document.getElementById('erroIngredientes');
+  const erroRefeicao = document.getElementById('erroRefeicao');
+  const createFotoInput = document.getElementById('createFotoInput');
+  const createThumbPreview = document.getElementById('createThumbPreview');
+
+  let refeicaoSelecionada = null;
+  let createFotoDataUrl = null;
+
+  function openRModal(){
+    rOverlay.classList.add('show');
+  }
+  function closeRModal(){
+    rOverlay.classList.remove('show');
+    recipeForm.reset();
+    linkInput.value = '';
+    refeicaoSelecionada = null;
+    createFotoDataUrl = null;
+    setThumbContent(createThumbPreview, 'Café da manhã', null);
+    document.querySelectorAll('#mealOptions .r-meal-chip').forEach(c => c.classList.remove('selected'));
+    [erroTitulo, erroIngredientes, erroRefeicao].forEach(e => e.classList.remove('show'));
+  }
+  receitaOpenModalBtn.addEventListener('click', openRModal);
+  receitaCloseModalBtn.addEventListener('click', closeRModal);
+  rOverlay.addEventListener('click', (e) => { if (e.target === rOverlay) closeRModal(); });
+
+  mealOptions.querySelectorAll('.r-meal-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      mealOptions.querySelectorAll('.r-meal-chip').forEach(c => c.classList.remove('selected'));
+      chip.classList.add('selected');
+      refeicaoSelecionada = chip.dataset.value;
+      erroRefeicao.classList.remove('show');
+      if (!createFotoDataUrl) setThumbContent(createThumbPreview, refeicaoSelecionada, null);
+    });
+  });
+
+  createFotoInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      createFotoDataUrl = reader.result;
+      setThumbContent(createThumbPreview, refeicaoSelecionada || 'Café da manhã', createFotoDataUrl);
+    };
+    reader.readAsDataURL(file);
+  });
+
+  function criarCard(titulo, refeicao, ingredientes, foto, link){
+    const cfg = R_CONFIG[refeicao];
+    const card = document.createElement('article');
+    card.className = 'r-card';
+    card.dataset.cat = refeicao;
+    card.dataset.ingredientes = ingredientes;
+    card.dataset.foto = foto || '';
+    card.dataset.link = link || '';
+    card.innerHTML = `
+      <div class="r-thumb"></div>
+      <div class="r-info">
+        <h3></h3>
+        <span class="r-tag ${cfg.classe}">${refeicao}</span>
+        <p class="r-desc"></p>
+      </div>
+    `;
+    setThumbContent(card.querySelector('.r-thumb'), refeicao, foto);
+    card.querySelector('h3').textContent = titulo;
+    card.querySelector('.r-desc').textContent = resumoIngredientes(ingredientes);
+    card.addEventListener('click', () => openViewModal(card));
+    return card;
+  }
+
+  recipeForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const titulo = tituloInput.value.trim();
+    const ingredientes = ingredientesInput.value.trim();
+    const link = linkInput.value.trim();
+
+    let valido = true;
+    if (!titulo){ erroTitulo.classList.add('show'); valido = false; } else erroTitulo.classList.remove('show');
+    if (!ingredientes){ erroIngredientes.classList.add('show'); valido = false; } else erroIngredientes.classList.remove('show');
+    if (!refeicaoSelecionada){ erroRefeicao.classList.add('show'); valido = false; } else erroRefeicao.classList.remove('show');
+    if (!valido) return;
+
+    const card = criarCard(titulo, refeicaoSelecionada, ingredientes, createFotoDataUrl, link);
+    rList.prepend(card);
+
+    const alvo = document.querySelector('.r-tab[data-filter="' + refeicaoSelecionada + '"]');
+    if (alvo){ rTabs.forEach(t => t.classList.remove('active')); alvo.classList.add('active'); }
+    applyFilter();
+    closeRModal();
+  });
+
+  /* ---------- Modal: Ver / editar receita ---------- */
+  const viewOverlay = document.getElementById('viewOverlay');
+  const viewReadMode = document.getElementById('viewReadMode');
+  const viewEditMode = document.getElementById('viewEditMode');
+  const closeViewBtn = document.getElementById('closeViewBtn');
+  const editViewBtn = document.getElementById('editViewBtn');
+  const closeEditBtn = document.getElementById('closeEditBtn');
+  const saveEditBtn = document.getElementById('saveEditBtn');
+  const viewThumb = document.getElementById('viewThumb');
+  const viewTitulo = document.getElementById('viewTitulo');
+  const viewTag = document.getElementById('viewTag');
+  const viewIngredientes = document.getElementById('viewIngredientes');
+  const viewLinkBtn = document.getElementById('viewLinkBtn');
+
+  const editTitulo = document.getElementById('editTitulo');
+  const editIngredientes = document.getElementById('editIngredientes');
+  const editLinkInput = document.getElementById('editLinkReceita');
+  const editMealOptions = document.getElementById('editMealOptions');
+  const editErroTitulo = document.getElementById('editErroTitulo');
+  const editErroIngredientes = document.getElementById('editErroIngredientes');
+  const editErroRefeicao = document.getElementById('editErroRefeicao');
+  const editFotoInput = document.getElementById('editFotoInput');
+  const editThumbPreview = document.getElementById('editThumbPreview');
+
+  let currentCard = null;
+  let editRefeicaoSelecionada = null;
+  let editFotoDataUrl = null;
+
+  function populateReadMode(card){
+    const titulo = card.querySelector('h3').textContent;
+    const refeicao = card.dataset.cat;
+    const ingredientesTexto = card.dataset.ingredientes || '';
+    const foto = card.dataset.foto || '';
+
+    setThumbContent(viewThumb, refeicao, foto || null);
+    viewTitulo.textContent = titulo;
+    const cfg = R_CONFIG[refeicao] || { classe: 'r-cafe' };
+    viewTag.className = 'r-tag ' + cfg.classe;
+    viewTag.textContent = refeicao;
+
+    const partes = ingredientesTexto.split(/,|\n/).map(p => p.trim()).filter(Boolean);
+    viewIngredientes.innerHTML = '';
+    partes.forEach(item => {
+      const li = document.createElement('li');
+      li.innerHTML = '<span class="r-ingredient-dot"></span>';
+      li.append(item);
+      viewIngredientes.appendChild(li);
+    });
+
+    const link = card.dataset.link || '';
+    viewLinkBtn.classList.toggle('show', !!link);
+    viewLinkBtn.onclick = () => { if (link) window.open(link, '_blank'); };
+  }
+
+  function showReadMode(){
+    viewReadMode.style.display = '';
+    viewEditMode.style.display = 'none';
+  }
+  function showEditMode(){
+    viewReadMode.style.display = 'none';
+    viewEditMode.style.display = '';
+  }
+
+  function openViewModal(card){
+    currentCard = card;
+    populateReadMode(card);
+    showReadMode();
+    viewOverlay.classList.add('show');
+  }
+  function closeViewModal(){
+    viewOverlay.classList.remove('show');
+    currentCard = null;
+  }
+  closeViewBtn.addEventListener('click', closeViewModal);
+  viewOverlay.addEventListener('click', (e) => { if (e.target === viewOverlay) closeViewModal(); });
+
+  function fillEditForm(card){
+    const titulo = card.querySelector('h3').textContent;
+    const refeicao = card.dataset.cat;
+    const ingredientesTexto = card.dataset.ingredientes || '';
+    const foto = card.dataset.foto || '';
+
+    editTitulo.value = titulo;
+    editIngredientes.value = ingredientesTexto.split(/,\s*/).join('\n');
+    editLinkInput.value = card.dataset.link || '';
+    editRefeicaoSelecionada = refeicao;
+    editFotoDataUrl = foto || null;
+
+    editMealOptions.querySelectorAll('.r-meal-chip').forEach(c => {
+      c.classList.toggle('selected', c.dataset.value === refeicao);
+    });
+    setThumbContent(editThumbPreview, refeicao, editFotoDataUrl);
+    [editErroTitulo, editErroIngredientes, editErroRefeicao].forEach(e => e.classList.remove('show'));
+  }
+
+  editViewBtn.addEventListener('click', () => {
+    if (!currentCard) return;
+    fillEditForm(currentCard);
+    showEditMode();
+  });
+
+  closeEditBtn.addEventListener('click', () => {
+    showReadMode();
+  });
+
+  editMealOptions.querySelectorAll('.r-meal-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      editMealOptions.querySelectorAll('.r-meal-chip').forEach(c => c.classList.remove('selected'));
+      chip.classList.add('selected');
+      editRefeicaoSelecionada = chip.dataset.value;
+      editErroRefeicao.classList.remove('show');
+      setThumbContent(editThumbPreview, editRefeicaoSelecionada, editFotoDataUrl);
+    });
+  });
+
+  editFotoInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      editFotoDataUrl = reader.result;
+      setThumbContent(editThumbPreview, editRefeicaoSelecionada, editFotoDataUrl);
+    };
+    reader.readAsDataURL(file);
+  });
+
+  saveEditBtn.addEventListener('click', () => {
+    if (!currentCard) return;
+    const titulo = editTitulo.value.trim();
+    const ingredientes = editIngredientes.value.trim();
+    const link = editLinkInput.value.trim();
+
+    let valido = true;
+    if (!titulo){ editErroTitulo.classList.add('show'); valido = false; } else editErroTitulo.classList.remove('show');
+    if (!ingredientes){ editErroIngredientes.classList.add('show'); valido = false; } else editErroIngredientes.classList.remove('show');
+    if (!editRefeicaoSelecionada){ editErroRefeicao.classList.add('show'); valido = false; } else editErroRefeicao.classList.remove('show');
+    if (!valido) return;
+
+    const cfg = R_CONFIG[editRefeicaoSelecionada];
+    currentCard.dataset.cat = editRefeicaoSelecionada;
+    currentCard.dataset.ingredientes = ingredientes;
+    currentCard.dataset.foto = editFotoDataUrl || '';
+    currentCard.dataset.link = link || '';
+
+    currentCard.querySelector('h3').textContent = titulo;
+    const tagEl = currentCard.querySelector('.r-tag');
+    tagEl.className = 'r-tag ' + cfg.classe;
+    tagEl.textContent = editRefeicaoSelecionada;
+    currentCard.querySelector('.r-desc').textContent = resumoIngredientes(ingredientes);
+    setThumbContent(currentCard.querySelector('.r-thumb'), editRefeicaoSelecionada, editFotoDataUrl);
+
+    applyFilter();
+    populateReadMode(currentCard);
+    showReadMode();
+  });
+
+  applyFilter();
+  setThumbContent(createThumbPreview, 'Café da manhã', null);
+</script>
+
+</body>
+</html>
